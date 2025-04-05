@@ -1,4 +1,10 @@
-import { WeatherData } from '../types';
+interface WeatherData {
+  temperature: number;
+  humidity: number;
+  isRaining: boolean;
+  precipitation: number;
+  forecast: string;
+}
 
 export const mockWeatherService = {
   getCurrentWeather: async (): Promise<WeatherData> => {

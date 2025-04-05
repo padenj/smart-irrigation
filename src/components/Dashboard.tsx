@@ -1,44 +1,55 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Droplets, Clock, AlertTriangle, Sun, Cloud, CloudRain, ThermometerSun } from 'lucide-react';
-import { SystemStatus, Zone } from '../types';
+
+import { remult } from 'remult';
+import { SystemStatus } from '../shared/systemStatus';
 
 interface DashboardProps {
-  systemStatus: SystemStatus;
-  onToggleZone: (zone: Zone) => void;
+  
 }
 
-export function Dashboard({ systemStatus, onToggleZone }: DashboardProps) {
-  const activeZones = systemStatus.zones.filter(zone => zone.isActive);
-  const nextSchedule = React.useMemo(() => {
-    const now = new Date();
-    const schedules = systemStatus.zones
-      .filter(zone => zone.enabled)
-      .flatMap(zone => 
-        zone.schedule
-          .filter(schedule => schedule.enabled)
-          .map(schedule => ({
-            zoneName: zone.name,
-            zoneId: zone.id,
-            startTime: schedule.startTime,
-            duration: schedule.duration,
-            days: schedule.days
-          }))
-      )
-      .filter(schedule => {
-        const [hours, minutes] = schedule.startTime.split(':').map(Number);
-        const scheduleTime = new Date();
-        scheduleTime.setHours(hours, minutes, 0, 0);
-        return scheduleTime > now && schedule.days.includes(now.toLocaleDateString('en-US', { weekday: 'monday' }).toLowerCase());
-      })
-      .sort((a, b) => {
-        const [aHours, aMinutes] = a.startTime.split(':').map(Number);
-        const [bHours, bMinutes] = b.startTime.split(':').map(Number);
-        return (aHours * 60 + aMinutes) - (bHours * 60 + bMinutes);
-      });
+const systemStatusRepo = remult.repo(SystemStatus);
 
-    return schedules[0];
-  }, [systemStatus.zones]);
+export function Dashboard({ }: DashboardProps) {
+  const [systemStatus, setSystemStatus] = useState<SystemStatus>();
+  
+  useEffect(() => {
+      systemStatusRepo.liveQuery().subscribe(info => setSystemStatus(() => { return info.applyChanges([])[0] }));
+  }, [])
+  // const activeZones = systemStatus.zones.filter(zone => zone.isActive);
+  // const nextSchedule = React.useMemo(() => {
+  //   const now = new Date();
+  //   const schedules = systemStatus.zones
+  //     .filter(zone => zone.enabled)
+  //     .flatMap(zone => 
+  //       zone.schedule
+  //         .filter(schedule => schedule.enabled)
+  //         .map(schedule => ({
+  //           zoneName: zone.name,
+  //           zoneId: zone.id,
+  //           startTime: schedule.startTime,
+  //           duration: schedule.duration,
+  //           days: schedule.days
+  //         }))
+  //     )
+  //     .filter(schedule => {
+  //       const [hours, minutes] = schedule.startTime.split(':').map(Number);
+  //       const scheduleTime = new Date();
+  //       scheduleTime.setHours(hours, minutes, 0, 0);
+  //       return scheduleTime > now && schedule.days.includes(now.toLocaleDateString('en-US', { weekday: 'monday' }).toLowerCase());
+  //     })
+  //     .sort((a, b) => {
+  //       const [aHours, aMinutes] = a.startTime.split(':').map(Number);
+  //       const [bHours, bMinutes] = b.startTime.split(':').map(Number);
+  //       return (aHours * 60 + aMinutes) - (bHours * 60 + bMinutes);
+  //     });
 
+  //   return schedules[0];
+  // }, [systemStatus.zones]);
+
+  if (!systemStatus) {
+    return "Loading..."
+  }
   return (
     <div className="space-y-6">
       {/* Weather Card */}
@@ -49,28 +60,28 @@ export function Dashboard({ systemStatus, onToggleZone }: DashboardProps) {
             <ThermometerSun className="h-6 w-6 text-blue-600" />
             <div>
               <p className="text-sm text-gray-500">Temperature</p>
-              <p className="text-lg font-medium">{systemStatus.weatherData.temperature.toFixed(1)}°C</p>
+              <p className="text-lg font-medium">{systemStatus?.weatherData?.temperatureF?.toFixed(1)}°C</p>
             </div>
           </div>
           <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
             <Droplets className="h-6 w-6 text-blue-600" />
             <div>
               <p className="text-sm text-gray-500">Humidity</p>
-              <p className="text-lg font-medium">{systemStatus.weatherData.humidity.toFixed(0)}%</p>
+              <p className="text-lg font-medium">{systemStatus?.weatherData?.humidity?.toFixed(0)}%</p>
             </div>
           </div>
           <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
             <CloudRain className="h-6 w-6 text-blue-600" />
             <div>
               <p className="text-sm text-gray-500">Precipitation</p>
-              <p className="text-lg font-medium">{systemStatus.weatherData.precipitation.toFixed(1)}mm</p>
+              <p className="text-lg font-medium">{systemStatus?.weatherData?.precipitation?.toFixed(1)}mm</p>
             </div>
           </div>
           <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
             <Cloud className="h-6 w-6 text-blue-600" />
             <div>
               <p className="text-sm text-gray-500">Forecast</p>
-              <p className="text-lg font-medium">{systemStatus.weatherData.forecast}</p>
+              <p className="text-lg font-medium">{systemStatus?.weatherData?.forecast}</p>
             </div>
           </div>
         </div>
@@ -79,7 +90,7 @@ export function Dashboard({ systemStatus, onToggleZone }: DashboardProps) {
       {/* Active Zones */}
       <div className="bg-white rounded-lg shadow-sm border p-6">
         <h2 className="text-lg font-medium text-gray-900 mb-4">Active Zones</h2>
-        {activeZones.length > 0 ? (
+        {/* {activeZones.length > 0 ? (
           <div className="space-y-3">
             {activeZones.map(zone => (
               <div key={zone.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
@@ -101,13 +112,13 @@ export function Dashboard({ systemStatus, onToggleZone }: DashboardProps) {
           </div>
         ) : (
           <p className="text-gray-500 text-center py-4">No zones are currently active</p>
-        )}
+        )} */}
       </div>
 
       {/* Next Scheduled */}
       <div className="bg-white rounded-lg shadow-sm border p-6">
         <h2 className="text-lg font-medium text-gray-900 mb-4">Next Scheduled Watering</h2>
-        {nextSchedule ? (
+        {/* {nextSchedule ? (
           <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
             <div className="flex items-center space-x-3">
               <Clock className="h-6 w-6 text-blue-600" />
@@ -121,24 +132,24 @@ export function Dashboard({ systemStatus, onToggleZone }: DashboardProps) {
           </div>
         ) : (
           <p className="text-gray-500 text-center py-4">No upcoming schedules</p>
-        )}
+        )} */}
       </div>
 
       {/* System Status */}
       <div className="bg-white rounded-lg shadow-sm border p-6">
         <h2 className="text-lg font-medium text-gray-900 mb-4">System Status</h2>
         <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-          {systemStatus.operational ? (
+          {systemStatus?.operational ? (
             <Sun className="h-6 w-6 text-green-600" />
           ) : (
             <AlertTriangle className="h-6 w-6 text-red-600" />
           )}
           <div>
             <p className="font-medium text-gray-900">
-              System is {systemStatus.operational ? 'Operational' : 'Having Issues'}
+              System is {systemStatus?.operational ? 'Operational' : 'Having Issues'}
             </p>
             <p className="text-sm text-gray-600">
-              Last Update: {systemStatus.lastUpdate.toLocaleTimeString()}
+              Last Update: {systemStatus?.lastUpdate?.toLocaleTimeString()}
             </p>
           </div>
         </div>

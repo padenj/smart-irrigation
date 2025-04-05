@@ -1,80 +1,63 @@
-import React from 'react';
-import { Clock, Droplets, Power, Edit2, Trash2, Plus, Save, X } from 'lucide-react';
-import { Zone, Schedule } from '../types';
+import React, { useEffect, useState } from 'react';
+import { Droplets, Edit2, Trash2, Plus } from 'lucide-react';
+import { Zone } from '../shared/zones';
+import { remult } from 'remult';
 
 interface ZoneManagerProps {
-  zones: Zone[];
-  onUpdateZone: (zone: Zone) => void;
-  onDeleteZone: (zoneId: number) => void;
-  onAddZone: (zone: Partial<Zone>) => void;
+  
+
 }
 
-export function ZoneManager({ zones, onUpdateZone, onDeleteZone, onAddZone }: ZoneManagerProps) {
+const zoneRepo = remult.repo(Zone);
+
+export function ZoneManager({  }: ZoneManagerProps) {
   const [editingZone, setEditingZone] = React.useState<number | null>(null);
-  const [editingSchedule, setEditingSchedule] = React.useState<{zoneId: number, scheduleId: number | null} | null>(null);
-  const [newSchedule, setNewSchedule] = React.useState<Partial<Schedule>>({
-    startTime: '06:00',
-    duration: 15,
-    days: ['monday', 'wednesday', 'friday'],
-    enabled: true
-  });
+  const [zones, setZones] = useState<Zone[]>([]);
 
-  const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  useEffect(() => {
+    return zoneRepo.liveQuery().subscribe((info) => setZones(info.applyChanges));
+  }, [])
+  // Zone management handlers
+  const handleUpdateZone = async (updatedZone: Zone) => {
+    try {
+      await zoneRepo.update(updatedZone.id, updatedZone)
+      setZones((zones) => zones.map((z) => (z.id === updatedZone.id ? updatedZone : z)))
+    } catch (e) {
+      console.log(e);
+    }
+    
+  };
 
-  const handleScheduleUpdate = (zoneId: number, schedule: Schedule) => {
+  const handleDeleteZone = async (zoneId: number) => {
     const zone = zones.find(z => z.id === zoneId);
     if (!zone) return;
 
-    const updatedSchedules = zone.schedule.map(s => 
-      s.id === schedule.id ? schedule : s
-    );
+    try {
+      await zoneRepo.delete(zoneId);
+      setZones((zones) => zones.filter(z => z.id !== zoneId))
+    } catch (e) {
+      console.log(e);
+    }
 
-    onUpdateZone({
-      ...zone,
-      schedule: updatedSchedules
-    });
-    setEditingSchedule(null);
   };
 
-  const handleAddSchedule = (zoneId: number) => {
-    const zone = zones.find(z => z.id === zoneId);
-    if (!zone) return;
-
-    const newScheduleId = Math.max(0, ...zone.schedule.map(s => s.id)) + 1;
-    const schedule: Schedule = {
-      id: newScheduleId,
-      zoneId,
-      ...newSchedule as Omit<Schedule, 'id' | 'zoneId'>
-    };
-
-    onUpdateZone({
-      ...zone,
-      schedule: [...zone.schedule, schedule]
-    });
-    setNewSchedule({
-      startTime: '06:00',
-      duration: 15,
-      days: ['monday', 'wednesday', 'friday'],
-      enabled: true
-    });
+  const handleAddZone = async (newZone: Partial<Zone>) => {
+    const zoneAdded = await zoneRepo.insert(newZone);
   };
 
-  const handleDeleteSchedule = (zoneId: number, scheduleId: number) => {
-    const zone = zones.find(z => z.id === zoneId);
-    if (!zone) return;
+  const handleToggleZone = (zone: Zone) => {
+    const updatedZone = { ...zone, isActive: !zone.isActive };
+    handleUpdateZone(updatedZone);
 
-    onUpdateZone({
-      ...zone,
-      schedule: zone.schedule.filter(s => s.id !== scheduleId)
-    });
   };
+
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-gray-900">Irrigation Zones</h2>
         <button
-          onClick={() => onAddZone({ name: 'New Zone', enabled: true, schedule: [], moistureLevel: 0, isActive: false })}
+          onClick={() => handleAddZone({ name: 'New Zone', enabled: true, moistureLevel: 0, isActive: false })}
           className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -90,7 +73,7 @@ export function ZoneManager({ zones, onUpdateZone, onDeleteZone, onAddZone }: Zo
                 <input
                   type="text"
                   value={zone.name}
-                  onChange={(e) => onUpdateZone({ ...zone, name: e.target.value })}
+                  onChange={(e) => handleUpdateZone({ ...zone, name: e.target.value })}
                   className="border rounded px-2 py-1"
                 />
               ) : (
@@ -100,11 +83,35 @@ export function ZoneManager({ zones, onUpdateZone, onDeleteZone, onAddZone }: Zo
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
                   <Droplets className="h-5 w-5 text-blue-500" />
-                  <span className="text-sm text-gray-600">{zone.moistureLevel}% Moisture</span>
+                    {editingZone === zone.id ? (
+                    <input
+                      type="number"
+                      value={zone.moistureLevel}
+                      onChange={(e) => handleUpdateZone({ ...zone, moistureLevel: parseInt(e.target.value, 10) || 0 })}
+                      className="border rounded px-2 py-1 w-20"
+                    />
+                    ) : (
+                    <span className="text-sm text-gray-600">{zone.moistureLevel}% Moisture</span>
+                    )}
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <label htmlFor={`gpio-port-${zone.id}`} className="text-sm text-gray-600">GPIO Port:</label>
+                  {editingZone === zone.id ? (
+                    <input
+                      id={`gpio-port-${zone.id}`}
+                      type="number"
+                      value={zone.gpioPort || ''}
+                      onChange={(e) => handleUpdateZone({ ...zone, gpioPort: parseInt(e.target.value, 10) || 0 })}
+                      className="border rounded px-2 py-1 w-20"
+                    />
+                  ) : (
+                    <span className="text-sm text-gray-600">{zone.gpioPort || 'N/A'}</span>
+                  )}
                 </div>
                 
                 <button
-                  onClick={() => onUpdateZone({ ...zone, enabled: !zone.enabled })}
+                  onClick={() => handleUpdateZone({ ...zone, enabled: !zone.enabled })}
                   className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                     zone.enabled ? 'bg-blue-600' : 'bg-gray-200'
                   }`}
@@ -122,7 +129,7 @@ export function ZoneManager({ zones, onUpdateZone, onDeleteZone, onAddZone }: Zo
                 </button>
 
                 <button
-                  onClick={() => onDeleteZone(zone.id)}
+                  onClick={() => handleDeleteZone(zone.id)}
                   className="p-1 text-gray-400 hover:text-red-600"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -130,125 +137,7 @@ export function ZoneManager({ zones, onUpdateZone, onDeleteZone, onAddZone }: Zo
               </div>
             </div>
 
-            <div className="space-y-4">
-              <h4 className="font-medium text-gray-700">Schedules</h4>
-              
-              <div className="space-y-3">
-                {zone.schedule.map(schedule => (
-                  <div key={schedule.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
-                    {editingSchedule?.zoneId === zone.id && editingSchedule?.scheduleId === schedule.id ? (
-                      <div className="flex-1 space-y-3">
-                        <div className="flex space-x-4">
-                          <div>
-                            <label className="block text-sm text-gray-600">Start Time</label>
-                            <input
-                              type="time"
-                              value={schedule.startTime}
-                              onChange={(e) => handleScheduleUpdate(zone.id, { ...schedule, startTime: e.target.value })}
-                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm text-gray-600">Duration (minutes)</label>
-                            <input
-                              type="number"
-                              value={schedule.duration}
-                              onChange={(e) => handleScheduleUpdate(zone.id, { ...schedule, duration: parseInt(e.target.value) })}
-                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-sm text-gray-600">Days</label>
-                          <div className="mt-1 flex flex-wrap gap-2">
-                            {daysOfWeek.map(day => (
-                              <button
-                                key={day}
-                                onClick={() => {
-                                  const days = schedule.days.includes(day)
-                                    ? schedule.days.filter(d => d !== day)
-                                    : [...schedule.days, day];
-                                  handleScheduleUpdate(zone.id, { ...schedule, days });
-                                }}
-                                className={`px-2 py-1 text-sm rounded-md ${
-                                  schedule.days.includes(day)
-                                    ? 'bg-blue-100 text-blue-800'
-                                    : 'bg-gray-100 text-gray-600'
-                                }`}
-                              >
-                                {day.charAt(0).toUpperCase() + day.slice(1, 3)}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="flex justify-end space-x-2">
-                          <button
-                            onClick={() => setEditingSchedule(null)}
-                            className="flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50"
-                          >
-                            <X className="h-4 w-4 mr-2" />
-                            Cancel
-                          </button>
-                          <button
-                            onClick={() => handleScheduleUpdate(zone.id, schedule)}
-                            className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                          >
-                            <Save className="h-4 w-4 mr-2" />
-                            Save
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex items-center space-x-4">
-                          <Clock className="h-5 w-5 text-gray-400" />
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">
-                              {schedule.startTime} ({schedule.duration} min)
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {schedule.days.map(day => day.charAt(0).toUpperCase() + day.slice(1, 3)).join(', ')}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => handleScheduleUpdate(zone.id, { ...schedule, enabled: !schedule.enabled })}
-                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                              schedule.enabled ? 'bg-blue-600' : 'bg-gray-200'
-                            }`}
-                          >
-                            <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                              schedule.enabled ? 'translate-x-5' : 'translate-x-0'
-                            }`} />
-                          </button>
-                          <button
-                            onClick={() => setEditingSchedule({ zoneId: zone.id, scheduleId: schedule.id })}
-                            className="p-1 text-gray-400 hover:text-gray-600"
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteSchedule(zone.id, schedule.id)}
-                            className="p-1 text-gray-400 hover:text-red-600"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ))}
-
-                <button
-                  onClick={() => handleAddSchedule(zone.id)}
-                  className="flex items-center px-3 py-2 w-full justify-center border-2 border-dashed border-gray-300 rounded-md text-gray-600 hover:border-gray-400 hover:text-gray-900"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Schedule
-                </button>
-              </div>
-            </div>
+            
           </div>
         ))}
       </div>

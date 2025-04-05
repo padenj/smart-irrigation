@@ -14,7 +14,7 @@ export function Settings({ settings, onUpdateSettings }: SettingsProps) {
     onUpdateSettings({
       ...settings,
       [section]: {
-        ...settings[section],
+        // ...settings[section],
         [key]: value
       }
     });

@@ -1,12 +1,3 @@
-export interface Zone {
-  id: number;
-  name: string;
-  enabled: boolean;
-  schedule: Schedule[];
-  lastWatered: Date | null;
-  moistureLevel: number; // 0-100%
-  isActive: boolean;
-}
 
 export interface Schedule {
   id: number;
@@ -17,21 +8,12 @@ export interface Schedule {
   enabled: boolean;
 }
 
-export interface WeatherData {
-  temperature: number;
-  humidity: number;
-  isRaining: boolean;
-  precipitation: number; // mm
-  forecast: string;
-}
 
-export interface SystemStatus {
-  operational: boolean;
-  lastUpdate: Date;
-  weatherData: WeatherData;
-  zones: Zone[];
-  systemLogs: SystemLog[];
-}
+// export interface SystemStatus {
+//   operational: boolean;
+//   lastUpdate: Date;
+//   systemLogs: SystemLog[];
+// }
 
 export interface SystemLog {
   id: number;

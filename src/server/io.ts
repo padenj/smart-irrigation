@@ -1,0 +1,135 @@
+import rpio from "rpio";
+
+const ADS1115_REF_VOLTAGE = 4.096;
+// ADS1115 resolution (16-bit)
+const ADC_RESOLUTION = 32768; // 2^15, accounting for signed integer
+
+enum I2CDevice {
+    ADS1115 = 0x48,
+    LCD = 0x27,
+}
+
+export interface I2CInterface {
+    readADC(channel: number): number;
+    writeLCD(row: number, text: string): void;
+    writeGPIO(pin: number, value: number): void;
+    exit(): void;
+}
+
+export const i2c = (() => {
+    let instance: I2CInterface | null = null;
+
+    function createInstance(): I2CInterface {
+        if (process.env.MOCK_GPIO) {
+            console.log("MOCK_GPIO is enabled. Using mock GPIO.");
+            rpio.init({ mapping: 'gpio', mock: 'raspi-3', gpiomem: false });
+        } else {
+            rpio.init({ mapping: 'gpio', gpiomem: false });
+        }
+
+        // Initialize I2C
+        rpio.i2cBegin();
+        rpio.i2cSetBaudRate(100000); // 100 kHz
+
+        function readDevice(device: I2CDevice, readLength: number) {
+            rpio.i2cSetSlaveAddress(device);
+            const readBuffer = Buffer.alloc(readLength);
+            rpio.i2cRead(readBuffer, readLength);
+            return readBuffer;
+        }
+    
+        function writeDevice(device: I2CDevice, data: Buffer) {
+            rpio.i2cSetSlaveAddress(device);
+            rpio.i2cWrite(data);
+        }
+    
+        return {
+            readADC: (channel: number) => {
+                if (channel < 0 || channel > 3) {
+                    throw new Error("Invalid ADC channel. Must be between 0 and 3.");
+                }
+
+                const config = Buffer.alloc(2);
+                config.writeUInt16BE(0x8000 | (channel << 12), 0); // Set the channel and start conversion
+                writeDevice(I2CDevice.ADS1115, config);
+
+                const readBuffer = readDevice(I2CDevice.ADS1115, 2);
+                const rawValue = readBuffer.readUInt16BE(0);
+
+                // Convert to voltage
+                const voltage = (rawValue / ADC_RESOLUTION) * ADS1115_REF_VOLTAGE;
+                console.log(`ADC Channel ${channel} Voltage: ${voltage.toFixed(4)} V`);
+                return voltage;
+            },
+
+            writeLCD: (row: number, text: string) => {
+                if (text.length > 16) {
+                    throw new Error("Text length exceeds 16 characters, which is the maximum for a single row.");
+                }
+
+                let rowOffset: number;
+                switch (row) {
+                    case 0:
+                        rowOffset = 0x80; // LCD_LINE1
+                        break;
+                    case 1:
+                        rowOffset = 0xc0; // LCD_LINE2
+                        break;
+                    case 2:
+                        rowOffset = 0x94; // LCD_LINE3
+                        break;
+                    case 3:
+                        rowOffset = 0xd4; // LCD_LINE4
+                        break;
+                    default:
+                        throw new Error("Invalid LCD row. Must be between 0 and 3.");
+                }
+
+                // Initialize the LCD
+                const initSequence = Buffer.from([0x03, 0x03, 0x03, 0x02, 0x28, 0x0c, 0x01, 0x06]);
+                writeDevice(I2CDevice.LCD, initSequence);
+
+                // Set the cursor to the specified row
+                const rowCommand = Buffer.from([rowOffset]);
+                writeDevice(I2CDevice.LCD, rowCommand);
+
+                // Write the text to the LCD
+                const paddedText = text.padEnd(16, ' '); // Pad the text to 16 characters
+                const textBuffer = Buffer.from(paddedText, 'ascii');
+                writeDevice(I2CDevice.LCD, textBuffer);
+            },
+
+            writeGPIO: (pin: number, value: number) => {
+                if (value !== rpio.HIGH && value !== rpio.LOW) {
+                    throw new Error("Invalid GPIO value. Must be rpio.HIGH or rpio.LOW.");
+                }
+                rpio.open(pin, rpio.OUTPUT, value);
+                rpio.write(pin, value);
+                console.log(`GPIO Pin ${pin} set to ${value === rpio.HIGH ? 'HIGH' : 'LOW'}`);
+                rpio.close(pin);
+            },
+
+            exit: () => {
+                rpio.i2cEnd();
+                rpio.exit();
+                console.log("I2C and GPIO cleanup complete.");      
+            }
+        }
+    }
+
+    return {
+        init: () => {
+            if (!instance) {
+                instance = createInstance();
+            }
+            return instance;
+        }
+    };
+})();
+
+// Clean up when the program is terminated
+process.on('SIGINT', () => {
+    console.log('Terminating the program...');
+    rpio.i2cEnd();
+    process.exit();
+});

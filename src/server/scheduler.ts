@@ -1,9 +1,7 @@
-import { add, Duration, sub } from "date-fns";
-import { Gpio } from "onoff";
+import { add, Duration } from "date-fns";
+import { I2CInterface } from "./io";
+import rpio from "rpio";
 // import schedule from "node-schedule";
-
-
-
 function countdownTimer(duration: Duration, onComplete: () => void) {
   
   const endTime = add(new Date(Date.now()), duration);
@@ -30,16 +28,13 @@ function countdownTimer(duration: Duration, onComplete: () => void) {
 // Or run on demand
 
 
-export const runZone = async (zoneId: number, seconds: number) => {
+export const runZone = async (zoneId: number, seconds: number, i: I2CInterface) => {
     console.log(`Running zone ${zoneId}...`);
-    const gpio = new Gpio(zoneId, 'out');
-    await gpio.write(1); // Turn on the GPIO pin
+    i.writeGPIO(zoneId, rpio.LOW); // Turn on the GPIO pin
     
     countdownTimer({ seconds }, () => {
         console.log(`Running ${zoneId} cleanup script...`);
-        gpio.write(0); // Turn off the GPIO pin
-        
-        // Place your cleanup logic here
+        i.writeGPIO(zoneId, rpio.HIGH); // Turn off the GPIO pin
       }); 
 }
 

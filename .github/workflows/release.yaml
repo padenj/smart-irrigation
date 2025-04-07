@@ -3,12 +3,15 @@ name: Build and Release with Semantic Versioning
 on:
   push:
     branches:
-      - main # Trigger workflow only on pushes to the main branch
+      - main # Trigger workflow only on pushes to the main branchtags:
+    tags:
+      - '!*'  # Exclude all tag pushes
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write
     steps:
     - name: Checkout source code
       uses: actions/checkout@v3

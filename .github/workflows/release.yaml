@@ -48,7 +48,7 @@ jobs:
         git push origin ${{ steps.versioning.outputs.new_version }}
 
     - name: Include version in build
-      run: cp version.txt ./build/
+      run: cp version.txt ./dist/
 
     - name: Create release package
       run: zip -r release-package.zip . -x '*.git*' 'node_modules/*'

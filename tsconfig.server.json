@@ -3,7 +3,7 @@
       "experimentalDecorators": true,
       "skipLibCheck": true,
       "esModuleInterop": true,
-      "outDir": "build",
+      "outDir": "dist",
       "rootDir": "src",
       "module": "nodenext"
     },

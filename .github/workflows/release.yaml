@@ -56,7 +56,7 @@ jobs:
         fi
 
     - name: Include version in build
-      run: cp version.txt ./dist/
+      run: cp version.txt ./build/dist/
 
     - name: Create release package
       run: zip -r release-package.zip . -x '*.git*' 'node_modules/*' 'src/*'

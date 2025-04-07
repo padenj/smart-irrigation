@@ -9,7 +9,7 @@ The **Smart Irrigation System** is an intelligent application designed to optimi
 - **Customizable Settings**: Allows users to set thresholds for soil moisture and watering schedules.
 - **Data Monitoring**: Provides real-time data on soil moisture, temperature, and humidity.
 - **Mobile Notifications**: Sends alerts for system updates or maintenance needs.
-
+ 
 ## Installation
 
     ```bash

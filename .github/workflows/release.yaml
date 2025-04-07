@@ -64,5 +64,5 @@ jobs:
       with:
         artifacts: release-package.zip
         token: ${{ secrets.GITHUB_TOKEN }}
-        tag: ${{ steps.versioning.outputs.new_version }}
-        name: Release ${{ steps.versioning.outputs.new_version }}
+        tag: ${{ env.NEW_VERSION }}
+        name: Release ${{ env.NEW_VERSION }}

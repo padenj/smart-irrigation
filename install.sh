@@ -32,6 +32,7 @@ ZIP_URL=$(curl -s "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/
 
 echo "Downloading the latest release ($LATEST_RELEASE)..."
 curl -L -o /tmp/release-package.zip "$ZIP_URL"
+find "$INSTALL_DIR" -mindepth 1 -not -path "$INSTALL_DIR/db/*" -delete
 unzip /tmp/release-package.zip -d "$INSTALL_DIR"
 echo "$LATEST_RELEASE" > "$INSTALL_DIR/.version"
 

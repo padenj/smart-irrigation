@@ -103,10 +103,10 @@ export const i2c = (() => {
                 if (value !== rpio.HIGH && value !== rpio.LOW) {
                     throw new Error("Invalid GPIO value. Must be rpio.HIGH or rpio.LOW.");
                 }
-                rpio.open(pin, rpio.OUTPUT, value);
+                //rpio.open(pin, rpio.OUTPUT, value);
                 rpio.write(pin, value);
                 console.log(`GPIO Pin ${pin} set to ${value === rpio.HIGH ? 'HIGH' : 'LOW'}`);
-                rpio.close(pin);
+                //rpio.close(pin);
             },
 
             exit: () => {

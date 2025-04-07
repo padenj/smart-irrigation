@@ -11,16 +11,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@types/rpi-gpio": "^2.1.4",
+    "ads1115": "^1.2.0",
     "cors": "^2.8.5",
     "date-fns": "^4.1.0",
     "express": "^5.1.0",
+    "i2c-bus": "^5.2.3",
     "lucide-react": "^0.344.0",
     "node-cron": "^3.0.3",
+    "pigpio": "^3.3.1",
+    "raspberrypi-liquid-crystal": "^1.20.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "remult": "^2.7.32",
-    "rpio": "^2.4.2"
+    "remult": "^2.7.32"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
@@ -28,7 +30,6 @@
     "@types/node-cron": "^3.0.11",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
-    "@types/rpio": "^2.4.6",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.18",
     "concurrently": "^9.1.2",

@@ -13,6 +13,13 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
+# Step 2: Install Node.js and npm
+if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
+  echo "Node.js and npm not found. Installing..."
+  curl -fsSL https://deb.nodesource.com/setup_20.x | bash - # Change Node.js version if needed
+  apt install -y nodejs
+fi
+
 # Step 2: Install necessary dependencies
 apt update && apt install -y jq unzip curl wget
 
@@ -27,6 +34,10 @@ echo "Downloading the latest release ($LATEST_RELEASE)..."
 curl -L -o /tmp/release-package.zip "$ZIP_URL"
 unzip /tmp/release-package.zip -d "$INSTALL_DIR"
 echo "$LATEST_RELEASE" > "$INSTALL_DIR/.version"
+
+# Run npm ci
+cd "$INSTALL_DIR"
+npm ci --only=production
 
 # Step 5: Create the systemd service file
 cat <<EOF > "/etc/systemd/system/$SERVICE_NAME.service"
@@ -59,6 +70,9 @@ if [ "\$LATEST_RELEASE" != "\$CURRENT_VERSION" ]; then
   curl -L -o /tmp/release-package.zip "\$ZIP_URL"
   rm -rf "$INSTALL_DIR"/*
   unzip /tmp/release-package.zip -d "$INSTALL_DIR"
+  echo "Running npm install"
+  cd "$INSTALL_DIR"
+  npm ci --only=production
   echo "\$LATEST_RELEASE" > "$INSTALL_DIR/.version"
   systemctl restart "$SERVICE_NAME"
   echo "Update complete!"

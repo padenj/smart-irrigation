@@ -1,11 +1,13 @@
 {
     "compilerOptions": {
+      "target": "ESNext",
+      "module": "ESNext",
+      "moduleResolution": "node",
       "experimentalDecorators": true,
       "skipLibCheck": true,
       "esModuleInterop": true,
-      "outDir": "dist",
-      "rootDir": "src",
-      "module": "nodenext"
+      "outDir": "./build",
+      "rootDir": "src"
     },
     "include": ["src/server/**/*", "src/shared/**/*"]
   }

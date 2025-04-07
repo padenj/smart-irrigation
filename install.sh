@@ -35,7 +35,7 @@ Description=Smart Irrigation System
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/node $INSTALL_DIR/index.js
+ExecStart=/usr/bin/node $INSTALL_DIR/build/server/index.js
 WorkingDirectory=$INSTALL_DIR
 Restart=always
 RestartSec=10

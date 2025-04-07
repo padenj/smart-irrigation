@@ -1,5 +1,5 @@
 import express from 'express';
-import { api } from './api';
+import { api } from './api.js';
 import fs from 'fs';
 import cron from 'node-cron';
 import path from 'path';
@@ -11,9 +11,10 @@ app.use(api);
 app.get('/api/hi', (req, res) => {
     res.send('hello');
   });
-app.use(express.static(process.cwd()+"/dist"));
+console.log(process.cwd());
+app.use(express.static(process.cwd()+"/build/dist"));
 
-const versionFilePath = path.join(__dirname, 'dist', 'version.txt');
+const versionFilePath = path.join(process.cwd()+'/build/dist', 'version.txt');
 const appVersion = fs.existsSync(versionFilePath) ? fs.readFileSync(versionFilePath, 'utf8').trim() : 'Unknown';
 
 app.listen(3000, () => console.log(`Started ${appVersion} on port 3000`));

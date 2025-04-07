@@ -13,7 +13,7 @@ The **Smart Irrigation System** is an intelligent application designed to optimi
 ## Installation
 
     ```bash
-    wget -O install.sh https://github.com/padenj/smart-installation/blob/main/install.sh
+    wget -O install.sh https://github.com/padenj/smart-irrigation/blob/main/install.sh
     sudo bash install.sh
     ```
 

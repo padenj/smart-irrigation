@@ -1,6 +1,6 @@
 import { Entity, Fields, Relations } from "remult";
 
-import { Zone } from "./zones";;
+import { Zone } from "./zones.js";;
 
 @Entity("systemStatus")
 export class SystemStatus {

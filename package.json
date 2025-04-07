@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "cross-env MOCK_GPIO=true concurrently \"tsx watch --tsconfig tsconfig.server.json src/server\" \"vite\"",
-    "build": "tsc && vite build",
-    "start": "tsx --tsconfig tsconfig.server.json src/server",
+    "build": "tsc --build tsconfig.server.json && vite build",
+    "start": "node build/server/index.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },

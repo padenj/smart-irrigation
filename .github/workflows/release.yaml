@@ -2,8 +2,8 @@ name: Build and Release with Semantic Versioning
 
 on:
   push:
-    tags:
-      - 'v*.*.*' # Trigger only on semantic version tags (e.g., v1.2.3)
+    branches:
+      - main # Trigger workflow only on pushes to the main branch
 
 jobs:
   build:
@@ -24,8 +24,21 @@ jobs:
     - name: Build application
       run: npm run build
 
-    - name: Extract version from tag
-      run: echo "${GITHUB_REF##*/}" > version.txt
+    - name: Update semantic version
+      id: versioning
+      run: |
+        echo "Determining semantic version..."
+        CURRENT_VERSION=$(git describe --tags --abbrev=0)
+        NEW_VERSION=$(echo $CURRENT_VERSION | awk -F. -v OFS=. '{$NF++; print}')
+        echo $NEW_VERSION > version.txt
+        echo "::set-output name=new_version::$NEW_VERSION"
+
+    - name: Tag new semantic version
+      run: |
+        git config --global user.name "${{ github.actor }}"
+        git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+        git tag ${{ steps.versioning.outputs.new_version }}
+        git push origin ${{ steps.versioning.outputs.new_version }}
 
     - name: Include version in build
       run: cp version.txt ./build/
@@ -38,5 +51,5 @@ jobs:
       with:
         artifacts: release-package.zip
         token: ${{ secrets.GITHUB_TOKEN }}
-        tag: ${{ github.ref_name }}
-        name: Release ${{ github.ref_name }}
+        tag: ${{ steps.versioning.outputs.new_version }}
+        name: Release ${{ steps.versioning.outputs.new_version }}

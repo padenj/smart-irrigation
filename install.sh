@@ -38,7 +38,7 @@ echo "$LATEST_RELEASE" > "$INSTALL_DIR/.version"
 
 # Run npm ci
 cd "$INSTALL_DIR"
-npm ci --only=production
+npm ci --omit=dev
 
 # Step 5: Create the systemd service file
 cat <<EOF > "/etc/systemd/system/$SERVICE_NAME.service"
@@ -69,11 +69,11 @@ CURRENT_VERSION=\$(cat $INSTALL_DIR/.version 2>/dev/null)
 if [ "\$LATEST_RELEASE" != "\$CURRENT_VERSION" ]; then
   echo "New release detected: \$LATEST_RELEASE. Updating application..."
   curl -L -o /tmp/release-package.zip "\$ZIP_URL"
-  rm -rf "$INSTALL_DIR"/*
+  find "$INSTALL_DIR" -mindepth 1 -not -path "$INSTALL_DIR/db/*" -delete
   unzip /tmp/release-package.zip -d "$INSTALL_DIR"
   echo "Running npm install"
   cd "$INSTALL_DIR"
-  npm ci --only=production
+  npm ci --omit=dev
   echo "\$LATEST_RELEASE" > "$INSTALL_DIR/.version"
   systemctl restart "$SERVICE_NAME"
   echo "Update complete!"
@@ -85,7 +85,11 @@ chmod +x "$UPDATE_SCRIPT_PATH"
 
 # Step 7: Schedule update automation with cron
 echo "Setting up automatic updates..."
-(crontab -l 2>/dev/null; echo "0 * * * * $UPDATE_SCRIPT_PATH") | crontab -
+if ! crontab -l 2>/dev/null | grep -q "$UPDATE_SCRIPT_PATH"; then
+    (crontab -l 2>/dev/null; echo "0 * * * * $UPDATE_SCRIPT_PATH") | crontab -
+else
+    echo "Crontab entry for automatic updates already exists. Skipping..."
+fi
 
 # Step 8: Enable and start the service
 echo "Starting the systemd service..."

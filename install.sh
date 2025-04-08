@@ -62,6 +62,14 @@ EOF
 cat <<EOF > "$UPDATE_SCRIPT_PATH"
 #!/bin/bash
  
+# Ensure PATH includes npm's location
+for dir in /usr/local/bin /usr/bin /bin; do
+  if [[ ":$PATH:" != *":$dir:"* ]]; then
+    PATH="$PATH:$dir"
+  fi
+done
+export PATH
+echo "Current PATH: $PATH"
 LATEST_RELEASE=\$(curl -s "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest" | jq -r '.tag_name')
 ZIP_URL=\$(curl -s "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest" | jq -r '.assets[0].browser_download_url')
 CURRENT_VERSION=\$(cat $INSTALL_DIR/.version 2>/dev/null)

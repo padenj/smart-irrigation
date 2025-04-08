@@ -61,7 +61,7 @@ EOF
 # Step 6: Set up the update script
 cat <<EOF > "$UPDATE_SCRIPT_PATH"
 #!/bin/bash
-
+ 
 LATEST_RELEASE=\$(curl -s "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest" | jq -r '.tag_name')
 ZIP_URL=\$(curl -s "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest" | jq -r '.assets[0].browser_download_url')
 CURRENT_VERSION=\$(cat $INSTALL_DIR/.version 2>/dev/null)

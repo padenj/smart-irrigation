@@ -57,7 +57,7 @@ Environment=NODE_ENV=production
 [Install]
 WantedBy=multi-user.target
 EOF
-
+ 
 # Step 6: Set up the update script
 cat <<EOF > "$UPDATE_SCRIPT_PATH"
 #!/bin/bash

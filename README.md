@@ -18,7 +18,7 @@ The **Smart Irrigation System** is an intelligent application designed to optimi
     ```
 
 ## Usage
-
+ 
 1. Access the application via the provided URL.
 2. Configure your irrigation settings in the dashboard.
 3. Monitor real-time data and adjust settings as needed.

@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "cross-env MOCK_GPIO=true concurrently \"tsx watch --tsconfig tsconfig.server.json src/server\" \"vite\"",
+    "dev": "concurrently \"tsx watch --tsconfig tsconfig.server.json src/server\" \"vite\"",
     "build": "tsc --build tsconfig.server.json && vite build",
     "start": "node build/server/index.js",
     "lint": "eslint .",
@@ -38,7 +38,6 @@
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.18",
     "concurrently": "^9.1.2",
-    "cross-env": "^7.0.3",
     "eslint": "^9.9.1",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.11",

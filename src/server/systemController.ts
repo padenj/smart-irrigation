@@ -5,7 +5,6 @@ import { Zone } from '../shared/zones'; // Assuming Zones is defined in this pat
 import { ILCDManager, IRelayController, ISensorController } from './hardwareControllers';
 import { SystemSettings } from '../shared/systemSettings';
 import { DateTime } from 'luxon';
-import { Settings } from '../components/Settings';
 
 const systemStatusRepo = repo(SystemStatus);
 

@@ -9,7 +9,7 @@ class LCDWrapper {
     constructor() {
         if (process.env.MOCK_HARDWARE === 'true') {
             this.lcd = {
-                begin: () => console.log('Mock LCD begin'),
+                beginSync: () => console.log('Mock LCD begin'),
                 clearSync: () => {},
                 setCursor: (col: number, row: number) => {},
                 printSync: (text: string) => {},
@@ -37,12 +37,22 @@ class LCDManager implements ILCDManager {
     private currentPageIndex: number = -1;
 
     private constructor() {
-        this.lcd = lcdInstance;
-        this.lcd.begin();
-        this.lcd.clearSync();
-        this.getPage(0); // Ensure the first page is initialized
-        this.startCycling();
-        this.setPage(0);
+        try {
+            this.lcd = lcdInstance;
+            this.lcd.beginSync();
+            this.lcd.clearSync();
+            this.getPage(0); // Ensure the first page is initialized
+            this.startCycling();
+            this.setPage(0);
+        } catch (error) {
+            console.error('Error initializing LCD Hardware, using mock instance', error);
+            this.lcd = {
+                beginSync: () => {},
+                clearSync: () => {},
+                setCursor: (col: number, row: number) => {},
+                printSync: (text: string) => {},
+            } as unknown as LCD;
+        }
     }
 
     static getInstance(): LCDManager {

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"tsx watch --tsconfig tsconfig.server.json src/server\" \"vite\"",
-    "build": "tsc --build tsconfig.server.json && vite build",
+    "build": "tsc --build tsconfig.server.json && vite build && node scripts/fix-extensions.js",
     "start": "node build/server/index.js",
     "lint": "eslint .",
     "preview": "vite preview"

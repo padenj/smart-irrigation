@@ -4,8 +4,8 @@ import { SystemStatus } from "../shared/systemStatus.js";
 import { Program } from "../shared/programs.js";
 import { SystemSettings } from "../shared/systemSettings.js";
 import { DisplayController, SystemController } from "./systemController.js";
-import RelayController from './relays'
-import LCDManager from './lcd'
+import RelayController from './relays.js'
+import LCDManager from './lcd.js'
 
 export const api = remultExpress({
     entities: [Zone, SystemStatus, Program, SystemSettings],

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-const distDir = './dist'; // Adjust to your output directory
+const distDir = './build'; // Adjust to your output directory
 
 function addJsExtensions(dir) {
   const files = fs.readdirSync(dir);

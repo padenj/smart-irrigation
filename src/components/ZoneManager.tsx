@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Droplets, Edit2, Trash2, Plus } from 'lucide-react';
+import { Droplets, Edit2, Trash2, Plus, Waves } from 'lucide-react';
 import { Zone } from '../shared/zones';
 import { remult } from 'remult';
+import { useStatusContext } from './StatusContext';
+import { SystemController } from '../server/systemController';
 
 interface ZoneManagerProps {
   
@@ -11,8 +13,9 @@ interface ZoneManagerProps {
 const zoneRepo = remult.repo(Zone);
 
 export function ZoneManager({  }: ZoneManagerProps) {
-  const [editingZone, setEditingZone] = React.useState<number | null>(null);
+  const [editingZone, setEditingZone] = React.useState<string>('');
   const [zones, setZones] = useState<Zone[]>([]);
+  const systemStatus = useStatusContext();
 
   useEffect(() => {
     return zoneRepo.liveQuery().subscribe((info) => setZones(info.applyChanges));
@@ -28,7 +31,7 @@ export function ZoneManager({  }: ZoneManagerProps) {
     
   };
 
-  const handleDeleteZone = async (zoneId: number) => {
+  const handleDeleteZone = async (zoneId: string) => {
     const zone = zones.find(z => z.id === zoneId);
     if (!zone) return;
 
@@ -46,18 +49,25 @@ export function ZoneManager({  }: ZoneManagerProps) {
   };
 
   const handleToggleZone = (zone: Zone) => {
-    const updatedZone = { ...zone, isActive: !zone.isActive };
+    const updatedZone = { ...zone, isActive: !zone.enabled };
     handleUpdateZone(updatedZone);
 
   };
 
+  const handleStartZone = (zoneId: string) => {
+    SystemController.runZone(zoneId, 30);
+  };
+
+  const handleStopZone = () => {
+    SystemController.requestActiveZoneStop();
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-gray-900">Irrigation Zones</h2>
         <button
-          onClick={() => handleAddZone({ name: 'New Zone', enabled: true, moistureLevel: 0, isActive: false })}
+          onClick={() => handleAddZone({ name: 'New Zone', enabled: true, moistureLevel: 100, gpioPort: 0 })}
           className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -122,7 +132,7 @@ export function ZoneManager({  }: ZoneManagerProps) {
                 </button>
 
                 <button
-                  onClick={() => setEditingZone(editingZone === zone.id ? null : zone.id)}
+                  onClick={() => setEditingZone(editingZone === zone.id ? '' : zone.id)}
                   className="p-1 text-gray-400 hover:text-gray-600"
                 >
                   <Edit2 className="h-4 w-4" />
@@ -137,7 +147,30 @@ export function ZoneManager({  }: ZoneManagerProps) {
               </div>
             </div>
 
-            
+            <div className="flex items-center space-x-4">
+
+            {systemStatus?.activeZone?.id !== zone.id && (
+              <button
+                onClick={() => handleStartZone(zone.id)}
+                className="px-2 py-1 text-sm bg-green-600 text-white rounded-md hover:bg-green-700"
+              >
+                Run
+              </button>
+              
+            )}
+              {systemStatus?.activeZone?.id === zone.id && (
+                <div className="flex items-center space-x-2 text-blue-600">
+                  <Waves className="h-5 w-5" />
+                  <span className="text-sm font-medium">Active</span>
+                  <button
+                    onClick={() => handleStopZone()}
+                    className="px-2 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
+                  >
+                    Stop
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         ))}
       </div>

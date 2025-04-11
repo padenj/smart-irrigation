@@ -1,6 +1,6 @@
 import { Droplets, Cloud } from 'lucide-react';
 import React from 'react';
-import Status from './Status';
+import Status from './StatusBar';
 
 const Header: React.FC = () => {
     return (

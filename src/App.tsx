@@ -1,40 +1,16 @@
 import React from 'react';
-import { SystemLog } from './types';
-import { mockWeatherService } from './mocks/weather';
 import { ZoneManager } from './components/ZoneManager';
 import { Dashboard } from './components/Dashboard';
 import { SystemLogs } from './components/SystemLogs';
 import Header from './components/Header';
+import { ProgramManager } from './components/ProgramManager';
+import { Settings } from './components/Settings';
+import { StatusProvider } from './components/StatusContext';
+import { SettingsProvider } from './components/SettingsContext';
+import { VersionDisplay } from './components/VersionDisplay';
 
 function App() {
   const [activeTab, setActiveTab] = React.useState('dashboard');
-  
-
-  React.useEffect(() => {
-    const updateWeather = async () => {
-      const weather = await mockWeatherService.getCurrentWeather();
-
-
-      // Add log entry for weather update
-      const newLog: SystemLog = {
-        id: Date.now(),
-        timestamp: new Date(),
-        type: 'INFO',
-        message: `Weather updated: ${weather.forecast}, ${weather.temperature.toFixed(1)}°C`
-      };
-
-      // setSystemStatus(prev => ({
-      //   ...prev,
-      //   systemLogs: [...prev.systemLogs, newLog]
-      // }));
-    };
-
-    updateWeather();
-    const interval = setInterval(updateWeather, 300000); // Update every 5 minutes
-
-    return () => clearInterval(interval);
-  }, []);
-
   
   return (
     <div className="min-h-screen bg-gray-50">
@@ -64,6 +40,16 @@ function App() {
               }`}
             >
               Zones
+            </button> 
+            <button
+              onClick={() => setActiveTab('programs')}
+              className={`px-3 py-2 text-sm font-medium ${
+                activeTab === 'programs'
+                  ? 'border-b-2 border-blue-500 text-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Programs
             </button>
             <button
               onClick={() => setActiveTab('logs')}
@@ -90,25 +76,32 @@ function App() {
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {activeTab === 'dashboard' && (
-          <Dashboard />
-        )}
-        {activeTab === 'zones' && (
-          <ZoneManager />
-        )}
-        {activeTab === 'logs' && (
-          <SystemLogs logs={[]} />
-        )}
-        {activeTab === 'settings' && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-center text-gray-500">
-              <p className="text-lg">Settings</p>
-              <p className="mt-2">Coming soon: System Settings and Configuration</p>
-            </div>
-          </div>
-        )}
-      </main>
+      <SettingsProvider>
+        <StatusProvider>
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {activeTab === 'dashboard' && (
+              <Dashboard />
+            )}
+            {activeTab === 'zones' && (
+              <ZoneManager />
+            )}
+            {activeTab === 'programs' && (
+              <ProgramManager />
+            )}
+            {activeTab === 'logs' && (
+              <SystemLogs />
+            )}
+            {activeTab === 'settings' && (
+              <Settings />
+            )}
+          </main>
+        </StatusProvider>
+      </SettingsProvider>
+
+      {/* Footer */}
+      <footer className=" bottom-0 right-0 m-4">
+        <VersionDisplay />
+      </footer>
     </div>
   );
 }

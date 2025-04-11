@@ -5,12 +5,15 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
-    exclude: ['lucide-react'],
+    exclude: ['pigpio', 'asd1115', 'i2c-bus', 'raspberrypi-liquid-crystal', 'lucide-react'],
   },
   build: {
     outDir: 'build/dist',
-    sourcemap: true
-  },
+    sourcemap: true,
+    rollupOptions: {      
+      external: ['pigpio', 'asd1115', 'i2c-bus', 'raspberrypi-liquid-crystal', '/src/server/relays.ts'], 
+    }, 
+  }, 
   server: {
     host: '0.0.0.0',
     port: 5173,

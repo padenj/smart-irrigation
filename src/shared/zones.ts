@@ -2,8 +2,8 @@ import { Entity, Fields, Validators } from "remult";
 
 @Entity("zones", { allowApiCrud: true})
 export class Zone {
-    @Fields.autoIncrement()
-    id=0;
+    @Fields.uuid()
+    id!: string;
 
     @Fields.string({
         validate: Validators.required
@@ -21,8 +21,5 @@ export class Zone {
 
     @Fields.number()
     gpioPort = 0;
-
-    @Fields.boolean()
-    isActive = false;
 }
 

@@ -9,7 +9,10 @@ const Status: React.FC = () => {
     const [systemStatus, setSystemStatus] = useState<SystemStatus>();
 
     useEffect(() => {
-        controllerRepo.liveQuery().subscribe(info => setSystemStatus(() => { return info.applyChanges([])[0]; }));
+        controllerRepo.liveQuery({ where: { id: 0 } }).subscribe(info => {
+            const changes = info.applyChanges([]);
+            setSystemStatus(changes[0]);
+        });
     }, [])
 
     if (!systemStatus) {

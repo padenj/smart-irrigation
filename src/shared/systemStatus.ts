@@ -1,26 +1,44 @@
 import { Entity, Fields, Relations } from "remult";
 
-import { Zone } from "./zones.js";;
+import { Zone } from "./zones.js";
+import { Program } from "./programs.js";
 
-@Entity("systemStatus")
+@Entity("systemStatus", {
+  allowApiCrud: true
+})
 export class SystemStatus {
-    @Relations.toOne(() => Zone) 
-    activeZone!: Zone
+    @Fields.number()
+    id: number = 0;
+
+    @Relations.toOne(() => Zone, {
+      defaultIncluded: true, 
+    }) 
+    activeZone: Zone | null = null
 
     @Fields.date()
-    startTime!: Date;
+    activeZoneStarted?: Date = undefined;
 
     @Fields.date()
-    endTime!: Date;
+    activeZoneEnd?: Date = undefined;
 
     @Fields.json()
-    weatherData!: WeatherData
-
-    @Fields.boolean()
-    operational!: boolean
+    weatherData: WeatherData = {
+        temperatureF: 0,
+        humidity: 0,
+        isRaining: false,
+        precipitation: 0,
+        forecast: "",
+        lastWeatherUpdate: undefined
+    }
 
     @Fields.date()
-    lastUpdate!: Date;
+    lastSchedulerRun?: Date;
+
+    @Relations.toOne(() => Program, {
+      defaultIncluded: true, 
+    })
+    activeProgram: Program | null = null
+
 }
 
 export interface WeatherData {
@@ -29,4 +47,5 @@ export interface WeatherData {
   isRaining: boolean;
   precipitation: number; // mm
   forecast: string;
+  lastWeatherUpdate?: Date;
 }

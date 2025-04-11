@@ -1,24 +1,39 @@
-import React from 'react';
-import { Bell, Cpu, Database, Globe, Mail, Shield, Sliders, Wifi } from 'lucide-react';
-import { SystemSettings } from '../types';
+import React, { useEffect, useState } from 'react';
+import { Bell, Cpu, Database, Globe, Shield, Sliders, Wifi } from 'lucide-react';
+import { remult } from 'remult';
+import { SystemSettings } from '../shared/systemSettings';
 
 interface SettingsProps {
-  settings: SystemSettings;
-  onUpdateSettings: (settings: SystemSettings) => void;
+  
 }
 
-export function Settings({ settings, onUpdateSettings }: SettingsProps) {
+export function Settings({  }: SettingsProps) {
   const [activeSection, setActiveSection] = React.useState('general');
+  const [settings, setSettings] = useState<SystemSettings>();
+  const settingsRepo = remult.repo(SystemSettings);
 
-  const handleChange = (section: string, key: string, value: any) => {
-    onUpdateSettings({
-      ...settings,
-      [section]: {
-        // ...settings[section],
-        [key]: value
-      }
+  useEffect(() => {
+    console.log("Settings component mounted");
+      settingsRepo.liveQuery({ where: { id: 0 } }).subscribe(info => {
+        const items = info.applyChanges([]);
+        console.log("Settings items:", items);
+        setSettings(items[0]);
+      });
+  }, [])
+  
+  const handleChange = (key: string, value: any) => {
+    setSettings((prevSettings) => {
+      if (!prevSettings) return prevSettings;
+      const updatedSettings = { ...prevSettings, [key]: typeof value === 'string' && !isNaN(Number(value)) ? parseFloat(value) : value };
+      console.log("Updated settings:", updatedSettings);
+      settingsRepo.save(updatedSettings);
+      return updatedSettings;
     });
   };
+
+  if (!settings) {
+    return "Loading..."
+  }
 
   return (
     <div className="space-y-6">
@@ -112,19 +127,10 @@ export function Settings({ settings, onUpdateSettings }: SettingsProps) {
                 <h2 className="text-lg font-medium text-gray-900">General Settings</h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">System Name</label>
-                    <input
-                      type="text"
-                      value={settings.general.systemName}
-                      onChange={(e) => handleChange('general', 'systemName', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
                     <label className="block text-sm font-medium text-gray-700">Time Zone</label>
                     <select
-                      value={settings.general.timeZone}
-                      onChange={(e) => handleChange('general', 'timeZone', e.target.value)}
+                      value={settings.timezone}
+                      onChange={(e) => handleChange('timeZone', e.target.value)}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     >
                       <option value="UTC">UTC</option>
@@ -140,9 +146,9 @@ export function Settings({ settings, onUpdateSettings }: SettingsProps) {
                       <label className="inline-flex items-center">
                         <input
                           type="radio"
-                          value="celsius"
-                          checked={settings.general.temperatureUnit === 'celsius'}
-                          onChange={(e) => handleChange('general', 'temperatureUnit', e.target.value)}
+                          value="C"
+                          checked={settings.temperatureUnit === 'C'}
+                          onChange={(e) => handleChange('temperatureUnit', e.target.value)}
                           className="form-radio text-blue-600"
                         />
                         <span className="ml-2">Celsius</span>
@@ -150,9 +156,9 @@ export function Settings({ settings, onUpdateSettings }: SettingsProps) {
                       <label className="inline-flex items-center">
                         <input
                           type="radio"
-                          value="fahrenheit"
-                          checked={settings.general.temperatureUnit === 'fahrenheit'}
-                          onChange={(e) => handleChange('general', 'temperatureUnit', e.target.value)}
+                          value="F"
+                          checked={settings.temperatureUnit === 'F'}
+                          onChange={(e) => handleChange('temperatureUnit', e.target.value)}
                           className="form-radio text-blue-600"
                         />
                         <span className="ml-2">Fahrenheit</span>
@@ -167,22 +173,22 @@ export function Settings({ settings, onUpdateSettings }: SettingsProps) {
               <div className="space-y-6">
                 <h2 className="text-lg font-medium text-gray-900">Hardware Configuration</h2>
                 <div className="space-y-4">
-                  <div>
+                    <div>
                     <label className="block text-sm font-medium text-gray-700">LCD Display I2C Address</label>
                     <input
                       type="text"
-                      value={settings.hardware.lcdAddress}
-                      onChange={(e) => handleChange('hardware', 'lcdAddress', e.target.value)}
+                      value={settings.lcdAddress ? `0x${settings.lcdAddress.toString(16)}` : ''}
+                      onChange={(e) => handleChange('lcdAddress', parseInt(e.target.value, 16).toString())}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                       placeholder="0x27"
                     />
-                  </div>
+                    </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Moisture Sensor ADC I2C Address</label>
                     <input
                       type="text"
-                      value={settings.hardware.moistureSensorAddress}
-                      onChange={(e) => handleChange('hardware', 'moistureSensorAddress', e.target.value)}
+                      value={settings.moistureSensorAddress ? `0x${settings.moistureSensorAddress.toString(16)}` : ''}
+                      onChange={(e) => handleChange('moistureSensorAddress', parseInt(e.target.value, 16).toString())}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                       placeholder="0x48"
                     />
@@ -191,8 +197,17 @@ export function Settings({ settings, onUpdateSettings }: SettingsProps) {
                     <label className="block text-sm font-medium text-gray-700">Moisture Reading Interval (minutes)</label>
                     <input
                       type="number"
-                      value={settings.hardware.moistureReadingInterval}
-                      onChange={(e) => handleChange('hardware', 'moistureReadingInterval', parseInt(e.target.value))}
+                      value={settings.moistureSensorReadingInterval}
+                      onChange={(e) => handleChange('moistureReadingInterval', parseInt(e.target.value))}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Moisture Reading Interval (minutes)</label>
+                    <input
+                      type="number"
+                      value={settings.moistureSensorCalibration}
+                      onChange={(e) => handleChange('moistureReadingInterval', parseInt(e.target.value))}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>
@@ -200,42 +215,6 @@ export function Settings({ settings, onUpdateSettings }: SettingsProps) {
               </div>
             )}
 
-            {activeSection === 'network' && (
-              <div className="space-y-6">
-                <h2 className="text-lg font-medium text-gray-900">Network Settings</h2>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">MQTT Broker URL</label>
-                    <input
-                      type="text"
-                      value={settings.network.mqttBroker}
-                      onChange={(e) => handleChange('network', 'mqttBroker', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">MQTT Topic Prefix</label>
-                    <input
-                      type="text"
-                      value={settings.network.mqttTopicPrefix}
-                      onChange={(e) => handleChange('network', 'mqttTopicPrefix', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={settings.network.mqttRetain}
-                      onChange={(e) => handleChange('network', 'mqttRetain', e.target.checked)}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <label className="ml-2 block text-sm text-gray-700">
-                      Retain MQTT Messages
-                    </label>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {activeSection === 'weather' && (
               <div className="space-y-6">
@@ -244,8 +223,8 @@ export function Settings({ settings, onUpdateSettings }: SettingsProps) {
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Weather Service</label>
                     <select
-                      value={settings.weather.service}
-                      onChange={(e) => handleChange('weather', 'service', e.target.value)}
+                      value={settings.weatherService}
+                      onChange={(e) => handleChange('service', e.target.value)}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     >
                       <option value="openweathermap">OpenWeatherMap</option>
@@ -257,8 +236,8 @@ export function Settings({ settings, onUpdateSettings }: SettingsProps) {
                     <label className="block text-sm font-medium text-gray-700">API Key</label>
                     <input
                       type="password"
-                      value={settings.weather.apiKey}
-                      onChange={(e) => handleChange('weather', 'apiKey', e.target.value)}
+                      value={settings.weatherApiKey}
+                      onChange={(e) => handleChange('apiKey', e.target.value)}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>
@@ -266,8 +245,8 @@ export function Settings({ settings, onUpdateSettings }: SettingsProps) {
                     <label className="block text-sm font-medium text-gray-700">Location</label>
                     <input
                       type="text"
-                      value={settings.weather.location}
-                      onChange={(e) => handleChange('weather', 'location', e.target.value)}
+                      value={settings.weatherLocation}
+                      onChange={(e) => handleChange('location', e.target.value)}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                       placeholder="City, Country or Coordinates"
                     />
@@ -276,163 +255,10 @@ export function Settings({ settings, onUpdateSettings }: SettingsProps) {
                     <label className="block text-sm font-medium text-gray-700">Update Interval (minutes)</label>
                     <input
                       type="number"
-                      value={settings.weather.updateInterval}
-                      onChange={(e) => handleChange('weather', 'updateInterval', parseInt(e.target.value))}
+                      value={settings.weatherUpdateInterval}
+                      onChange={(e) => handleChange('updateInterval', parseInt(e.target.value))}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeSection === 'notifications' && (
-              <div className="space-y-6">
-                <h2 className="text-lg font-medium text-gray-900">Notification Settings</h2>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Email Notifications</label>
-                    <div className="mt-1 space-y-2">
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={settings.notifications.emailEnabled}
-                          onChange={(e) => handleChange('notifications', 'emailEnabled', e.target.checked)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
-                        <label className="ml-2 block text-sm text-gray-700">
-                          Enable Email Notifications
-                        </label>
-                      </div>
-                      {settings.notifications.emailEnabled && (
-                        <div className="pl-6">
-                          <input
-                            type="email"
-                            value={settings.notifications.emailAddress}
-                            onChange={(e) => handleChange('notifications', 'emailAddress', e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                            placeholder="email@example.com"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Notification Events</label>
-                    <div className="space-y-2">
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={settings.notifications.notifyOnError}
-                          onChange={(e) => handleChange('notifications', 'notifyOnError', e.target.checked)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
-                        <label className="ml-2 block text-sm text-gray-700">
-                          System Errors
-                        </label>
-                      </div>
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={settings.notifications.notifyOnWarning}
-                          onChange={(e) => handleChange('notifications', 'notifyOnWarning', e.target.checked)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
-                        <label className="ml-2 block text-sm text-gray-700">
-                          System Warnings
-                        </label>
-                      </div>
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={settings.notifications.notifyOnZoneStart}
-                          onChange={(e) => handleChange('notifications', 'notifyOnZoneStart', e.target.checked)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
-                        <label className="ml-2 block text-sm text-gray-700">
-                          Zone Start/Stop
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeSection === 'database' && (
-              <div className="space-y-6">
-                <h2 className="text-lg font-medium text-gray-900">Database Settings</h2>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Log Retention (days)</label>
-                    <input
-                      type="number"
-                      value={settings.database.logRetentionDays}
-                      onChange={(e) => handleChange('database', 'logRetentionDays', parseInt(e.target.value))}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Backup Schedule</label>
-                    <select
-                      value={settings.database.backupSchedule}
-                      onChange={(e) => handleChange('database', 'backupSchedule', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    >
-                      <option value="daily">Daily</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="monthly">Monthly</option>
-                      <option value="never">Never</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={settings.database.compressBackups}
-                      onChange={(e) => handleChange('database', 'compressBackups', e.target.checked)}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <label className="ml-2 block text-sm text-gray-700">
-                      Compress Backups
-                    </label>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeSection === 'security' && (
-              <div className="space-y-6">
-                <h2 className="text-lg font-medium text-gray-900">Security Settings</h2>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Session Timeout (minutes)</label>
-                    <input
-                      type="number"
-                      value={settings.security.sessionTimeout}
-                      onChange={(e) => handleChange('security', 'sessionTimeout', parseInt(e.target.value))}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={settings.security.requireAuth}
-                      onChange={(e) => handleChange('security', 'requireAuth', e.target.checked)}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <label className="ml-2 block text-sm text-gray-700">
-                      Require Authentication
-                    </label>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={settings.security.enableAPIAccess}
-                      onChange={(e) => handleChange('security', 'enableAPIAccess', e.target.checked)}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <label className="ml-2 block text-sm text-gray-700">
-                      Enable API Access
-                    </label>
                   </div>
                 </div>
               </div>

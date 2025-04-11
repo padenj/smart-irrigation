@@ -1,24 +1,40 @@
 import React from 'react';
 import { AlertCircle, Info, AlertTriangle } from 'lucide-react';
-import { SystemLog } from '../types';
+import { useEffect, useState } from 'react';
+import { remult } from 'remult';
+import { SystemLog } from '../shared/systemLog';
+
 
 interface SystemLogsProps {
-  logs: SystemLog[];
 }
 
-export function SystemLogs({ logs }: SystemLogsProps) {
-  const [filter, setFilter] = React.useState<'all' | 'INFO' | 'WARNING' | 'ERROR'>('all');
+export function SystemLogs({ }: SystemLogsProps) {
+  const [filter, setFilter] = React.useState<'ALL' | 'INFO' | 'WARNING' | 'ERROR'>('ALL');
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [systemLogs, setSystemLogs] = useState<SystemLog[]>([]);
+  const logsRepo = remult.repo(SystemLog);
+
+  useEffect(() => {
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    logsRepo
+      .liveQuery({
+      where: {
+        timestamp: { $gte: oneWeekAgo },
+      },
+      })
+      .subscribe(info => setSystemLogs(info.applyChanges));
+  }, []);
 
   const filteredLogs = React.useMemo(() => {
-    return logs
-      .filter(log => filter === 'all' || log.type === filter)
+    return systemLogs
+      .filter(log => filter === 'ALL' || log.level === filter)
       .filter(log => 
-        log.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (log.zoneId?.toString() || '').includes(searchTerm)
+        log.message.toLowerCase().includes(searchTerm.toLowerCase())
       )
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-  }, [logs, filter, searchTerm]);
+  }, [systemLogs, filter, searchTerm]);
 
   const getLogIcon = (type: 'INFO' | 'WARNING' | 'ERROR') => {
     switch (type) {
@@ -56,9 +72,9 @@ export function SystemLogs({ logs }: SystemLogsProps) {
         </div>
         <div className="flex space-x-2">
           <button
-            onClick={() => setFilter('all')}
+            onClick={() => setFilter('ALL')}
             className={`px-3 py-2 rounded-md text-sm font-medium ${
-              filter === 'all'
+              filter === 'ALL'
                 ? 'bg-gray-900 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-50'
             }`}
@@ -104,22 +120,13 @@ export function SystemLogs({ logs }: SystemLogsProps) {
             filteredLogs.map((log, index) => (
               <div
                 key={index}
-                className={`p-4 ${getLogClass(log.type)} flex items-start space-x-3`}
+                className={`p-4 ${getLogClass(log.level)} flex items-start space-x-3`}
               >
-                {getLogIcon(log.type)}
+                {getLogIcon(log.level)}
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-gray-900">
                     {log.message}
                   </p>
-                  <div className="mt-1 flex items-center space-x-2 text-sm text-gray-500">
-                    <span>{log.timestamp.toLocaleString()}</span>
-                    {log.zoneId && (
-                      <>
-                        <span>•</span>
-                        <span>Zone ID: {log.zoneId}</span>
-                      </>
-                    )}
-                  </div>
                 </div>
               </div>
             ))

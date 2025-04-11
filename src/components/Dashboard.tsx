@@ -1,21 +1,40 @@
-import React, { useEffect, useState } from 'react';
-import { Droplets, Clock, AlertTriangle, Sun, Cloud, CloudRain, ThermometerSun } from 'lucide-react';
+import { Droplets, Clock, Cloud, CloudRain, ThermometerSun } from 'lucide-react';
 
+import SystemStatusCard from './SystemStatusCard';
+import { useStatusContext } from './StatusContext';
+import { Program } from '../shared/programs';
 import { remult } from 'remult';
-import { SystemStatus } from '../shared/systemStatus';
+import { DateTimeUtils } from '../server/systemController';
+import { useSettingsContext } from './SettingsContext';
+import React from 'react';
 
 interface DashboardProps {
-  
 }
 
-const systemStatusRepo = remult.repo(SystemStatus);
 
-export function Dashboard({ }: DashboardProps) {
-  const [systemStatus, setSystemStatus] = useState<SystemStatus>();
+export function Dashboard({}: DashboardProps) {
   
-  useEffect(() => {
-      systemStatusRepo.liveQuery().subscribe(info => setSystemStatus(() => { return info.applyChanges([])[0] }));
-  }, [])
+  const systemStatus = useStatusContext();
+  const systemSettings = useSettingsContext();
+  const programRepo = remult.repo(Program);
+  const [nextProgram, setNextProgram] = React.useState<Program | null>(null);
+
+  React.useEffect(() => {
+    const fetchNextProgram = async () => {
+      const programs = await programRepo.find({
+        where: { isEnabled: true },
+      });
+      const nextProgram = programs
+        .map(program => ({
+          program,
+          nextScheduledRunTime: DateTimeUtils.fromISODateTime(program.nextScheduledRunTime, systemSettings.timezone),
+        }))
+        .sort((a, b) => (a.nextScheduledRunTime?.getTime() ?? 0) - (b.nextScheduledRunTime?.getTime() ?? 0))[0] || null;
+      setNextProgram(nextProgram.program);
+    };
+    fetchNextProgram();
+  }, [programRepo]);
+  
   // const activeZones = systemStatus.zones.filter(zone => zone.isActive);
   // const nextSchedule = React.useMemo(() => {
   //   const now = new Date();
@@ -90,70 +109,45 @@ export function Dashboard({ }: DashboardProps) {
       {/* Active Zones */}
       <div className="bg-white rounded-lg shadow-sm border p-6">
         <h2 className="text-lg font-medium text-gray-900 mb-4">Active Zones</h2>
-        {/* {activeZones.length > 0 ? (
-          <div className="space-y-3">
-            {activeZones.map(zone => (
-              <div key={zone.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <Droplets className="h-6 w-6 text-green-600" />
-                  <div>
-                    <p className="font-medium text-green-900">{zone.name}</p>
-                    <p className="text-sm text-green-600">Moisture Level: {zone.moistureLevel}%</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => onToggleZone(zone)}
-                  className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-                >
-                  Stop
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-500 text-center py-4">No zones are currently active</p>
-        )} */}
-      </div>
-
-      {/* Next Scheduled */}
-      <div className="bg-white rounded-lg shadow-sm border p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Next Scheduled Watering</h2>
-        {/* {nextSchedule ? (
-          <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+        {systemStatus?.activeZone ? (
+          <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
             <div className="flex items-center space-x-3">
-              <Clock className="h-6 w-6 text-blue-600" />
+              <Droplets className="h-6 w-6 text-green-600" />
               <div>
-                <p className="font-medium text-gray-900">{nextSchedule.zoneName}</p>
-                <p className="text-sm text-gray-600">
-                  Starts at {nextSchedule.startTime} ({nextSchedule.duration} minutes)
+                <p className="font-medium text-green-900">{systemStatus.activeZone.name}</p>
+                <p className="text-sm text-green-600">
+                  Started at: {systemStatus.activeZoneStarted?.toLocaleTimeString()} - Ends at: {systemStatus.activeZoneEnd?.toLocaleTimeString()}
                 </p>
               </div>
             </div>
           </div>
         ) : (
-          <p className="text-gray-500 text-center py-4">No upcoming schedules</p>
-        )} */}
+          <p className="text-gray-500 text-left py-4">No zones running</p>
+        )}
+      </div>
+
+      {/* Next Scheduled */}
+      <div className="bg-white rounded-lg shadow-sm border p-6">
+        <h2 className="text-lg font-medium text-gray-900 mb-4">Next Scheduled Watering</h2>
+        {nextProgram ? (
+          <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <Clock className="h-6 w-6 text-blue-600" />
+              <div>
+                <p className="font-medium text-gray-900">{nextProgram.name}</p>
+                <p className="text-sm text-gray-600">
+                  Starts at {DateTimeUtils.isoToDateTimeShortStr(nextProgram.nextScheduledRunTime, systemSettings.timezone)}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p className="text-gray-500 text-left py-4">No programs scheduled</p>
+        )}
       </div>
 
       {/* System Status */}
-      <div className="bg-white rounded-lg shadow-sm border p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">System Status</h2>
-        <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-          {systemStatus?.operational ? (
-            <Sun className="h-6 w-6 text-green-600" />
-          ) : (
-            <AlertTriangle className="h-6 w-6 text-red-600" />
-          )}
-          <div>
-            <p className="font-medium text-gray-900">
-              System is {systemStatus?.operational ? 'Operational' : 'Having Issues'}
-            </p>
-            <p className="text-sm text-gray-600">
-              Last Update: {systemStatus?.lastUpdate?.toLocaleTimeString()}
-            </p>
-          </div>
-        </div>
-      </div>
+      <SystemStatusCard />
     </div>
   );
 }

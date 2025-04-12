@@ -3,7 +3,7 @@ import { Droplets, Edit2, Trash2, Plus, Waves } from 'lucide-react';
 import { Zone } from '../shared/zones';
 import { remult } from 'remult';
 import { useStatusContext } from './StatusContext';
-import { SystemController } from '../server/systemController';
+import { ZoneController } from '../server/controllers/ZoneController';
 
 interface ZoneManagerProps {
   
@@ -45,21 +45,15 @@ export function ZoneManager({  }: ZoneManagerProps) {
   };
 
   const handleAddZone = async (newZone: Partial<Zone>) => {
-    const zoneAdded = await zoneRepo.insert(newZone);
-  };
-
-  const handleToggleZone = (zone: Zone) => {
-    const updatedZone = { ...zone, isActive: !zone.enabled };
-    handleUpdateZone(updatedZone);
-
+    await zoneRepo.insert(newZone);
   };
 
   const handleStartZone = (zoneId: string) => {
-    SystemController.runZone(zoneId, 30);
+    ZoneController.runZone(zoneId, 30);
   };
 
   const handleStopZone = () => {
-    SystemController.requestActiveZoneStop();
+    ZoneController.requestActiveZoneStop();
   };
 
   return (

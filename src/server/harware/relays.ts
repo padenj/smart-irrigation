@@ -1,5 +1,5 @@
 import { Gpio as RealGpio } from 'pigpio';
-import { IRelayController } from './hardwareControllers';
+import { IRelayController } from '../types/hardware';
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 

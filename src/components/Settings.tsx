@@ -16,19 +16,65 @@ export function Settings({  }: SettingsProps) {
     console.log("Settings component mounted");
       settingsRepo.liveQuery({ where: { id: 0 } }).subscribe(info => {
         const items = info.applyChanges([]);
-        console.log("Settings items:", items);
-        setSettings(items[0]);
+        if (items?.length > 0) {    
+          console.log("Settings items:", items);
+          setSettings(items[0]);
+        }
       });
   }, [])
   
   const handleChange = (key: string, value: any) => {
-    setSettings((prevSettings) => {
-      if (!prevSettings) return prevSettings;
-      const updatedSettings = { ...prevSettings, [key]: typeof value === 'string' && !isNaN(Number(value)) ? parseFloat(value) : value };
-      console.log("Updated settings:", updatedSettings);
-      settingsRepo.save(updatedSettings);
-      return updatedSettings;
+    console.log("Settings change:", key, value);
+    if (!settings) return;
+    if (key === 'lcdAddress' || key === 'moistureSensorAddress') {
+      value = parseInt(value, 16);
+    } else if (key === 'moistureReadingInterval') {
+      value = parseInt(value);
+    } else if (key === 'temperatureUnit') {
+      value = value.toUpperCase();
+    }
+    if (key === 'weatherService') {
+      value = value.toLowerCase();
+    }
+    if (key === 'weatherUpdateInterval') {
+      value = parseInt(value);
+    }
+    if (key === 'moistureSensorCalibration') {
+      value = parseInt(value);
+    }
+    if (key === 'moistureSensorReadingInterval') {
+      value = parseInt(value);      
+    }
+    if (key === 'weatherLocation') {
+      value = value.trim();
+    }
+    if (key === 'weatherApiKey') {
+      value = value.trim();
+    }
+    if (key === 'latitude') {
+      value = value.trim();
+    }
+    if (key === 'longitude') {      
+      value = value.trim();
+    }
+    if (key === 'timeZone') {
+      value = value.trim();
+    }
+    if (key === 'lcdAddress') {
+      value = value.trim();
+    }  
+console.log('here');
+    settingsRepo.save({
+      ...settings,
+      [key]: value,
+    }).then((value) => {
+      console.log("Settings saved:", value);
+      setSettings(value);
+    }).catch((error) => {
+      console.error("Error saving settings:", error);
     });
+    // Update the settings state
+
   };
 
   if (!settings) {

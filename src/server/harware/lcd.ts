@@ -1,7 +1,11 @@
 import LCD from 'raspberrypi-liquid-crystal';
 import dotenv from 'dotenv';
-import { ILCDManager } from './hardwareControllers';
+import { ILCDManager } from '../types/hardware';
 dotenv.config({ path: '.env.local' });
+
+const LCD_ROWS = 4;
+const LCD_COLS = 20;
+const LCD_PAGE_CYCLE_TIME = 20000; // 20 seconds
 
 class LCDWrapper {
     private lcd: LCD | null = null;
@@ -15,7 +19,7 @@ class LCDWrapper {
             } as unknown as LCD;
             console.log('Mock LCD initialized');
         } else {
-            this.lcd = new LCD(1, 0x27, 20, 4);
+            this.lcd = new LCD(1, 0x27, LCD_COLS, LCD_ROWS);
             this.lcd.beginSync();
             this.lcd.clearSync();
             this.lcd.setCursor(0, 0);
@@ -65,13 +69,6 @@ class LCDManager implements ILCDManager {
         return LCDManager.instance;
     }
 
-    addPage(page: string[]): void {
-        if (page.length !== 4 || page.some(line => line.length > 40)) {
-            console.log('Each page must have exactly 4 lines, each with a maximum of 40 characters.');
-            return;
-        }
-        this.pages.push(page);
-    }
 
     removePage(pageIndex: number): void {
         if (pageIndex < 0 || pageIndex >= this.pages.length) {
@@ -89,7 +86,7 @@ class LCDManager implements ILCDManager {
 
         if (pageIndex >= this.pages.length) {
             while (this.pages.length <= pageIndex) {
-                this.pages.push([''.padEnd(40, ' '), ''.padEnd(40, ' '), ''.padEnd(40, ' '), ''.padEnd(40, ' ')]);
+                this.pages.push(new Array(LCD_ROWS).fill(''.padEnd(LCD_COLS, ' ')));
             }
         }
 
@@ -97,12 +94,12 @@ class LCDManager implements ILCDManager {
     }
 
     writeLine(pageIndex: number, lineIndex: number, text: string): void {
-        const paddedText = text.padEnd(40, ' ');
+        const paddedText = text.padEnd(LCD_COLS, ' ');
         this.insertText(pageIndex, lineIndex, 0, paddedText); // Insert at the beginning
     }
 
     insertText(pageIndex: number, lineIndex: number, position: number, text: string): void {
-        if (position < 0 || position >= 40) {
+        if (position < 0 || position >= LCD_COLS) {
             console.log('Invalid position.');
             return;
         }
@@ -114,7 +111,7 @@ class LCDManager implements ILCDManager {
             return;
         }
 
-        if (lineIndex < 0 || lineIndex >= 4) {
+        if (lineIndex < 0 || lineIndex >= LCD_ROWS) {
             console.log(`Invalid line index ${lineIndex}.`);
             return;
         }
@@ -123,7 +120,7 @@ class LCDManager implements ILCDManager {
         const updatedLine = 
             (currentLine.slice(0, position) + 
             text + 
-            currentLine.slice(position + text.length)).slice(0, 40);
+            currentLine.slice(position + text.length)).slice(0, LCD_COLS);
 
         if (currentLine === updatedLine) {
             return;
@@ -149,7 +146,7 @@ class LCDManager implements ILCDManager {
             const nextPage = (this.currentPageIndex + 1) % this.pages.length;
             if (this.currentPageIndex === nextPage) return;
             this.setPage(nextPage);
-        }, 20000);
+        }, LCD_PAGE_CYCLE_TIME);
     }
 
     private setPage(pageNum: number): void {

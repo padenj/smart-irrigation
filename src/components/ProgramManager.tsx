@@ -5,8 +5,9 @@ import { Program } from '../shared/programs';
 import { Zone } from '../shared/zones';
 import { useStatusContext } from './StatusContext';
 import { useSettingsContext } from './SettingsContext';
-import { DateTimeUtils, SystemController } from '../server/systemController';
+import { DateTimeUtils } from '../server/utilities/DateTimeUtils';
 import { DateTime } from 'luxon';
+import { ProgramController } from '../server/controllers/ProgramController';
 
 interface ProgramManagerProps {
 }
@@ -46,7 +47,7 @@ export function ProgramManager({ }: ProgramManagerProps) {
       setPrograms((programs) => programs.map((p) => (p.id === programDraft.id ? programDraft : p)));
       setEditingProgram('');
       setProgramDraft(null);
-      SystemController.calculateProgramSchedule(programDraft.id);
+      ProgramController.calculateProgramSchedule(programDraft.id);
     } catch (e) {
       console.log(e);
     }
@@ -75,13 +76,12 @@ export function ProgramManager({ }: ProgramManagerProps) {
   };
 
   const onAddProgram = async (newProgram: Partial<Program>) => {
-    const programAdded = await programRepo.insert(newProgram);
-    setPrograms((programs) => [...programs, programAdded]);
+    await programRepo.insert(newProgram);
   };
 
   const handleStopActiveProgram = async () => {
     try {
-      await SystemController.stopActiveProgram();
+      await ProgramController.stopActiveProgram();
     } catch (e) {
       console.log(e);
     }
@@ -89,7 +89,7 @@ export function ProgramManager({ }: ProgramManagerProps) {
 
   const handleRunProgram = async (programId: string) => {
     try {
-      await SystemController.runProgram(programId);
+      await ProgramController.runProgram(programId);
     } catch (e) {
       console.log(e);
     }

@@ -10,11 +10,11 @@ export class SystemLog {
     @Fields.string()
     message!: string;
 
-    @Fields.string({
-        validate: (level) => {
+    @Fields.string<SystemLog>({
+        validate: (log) => {
             const validLevels = ["INFO", "WARNING", "ERROR"];
-            if (!validLevels.includes(level as string)) {
-                throw new Error(`Invalid log level: ${level}. Valid levels are: ${validLevels.join(", ")}`);
+            if (!validLevels.includes(log.level)) {
+                console.error(`Invalid log level: ${log.level}. Valid levels are: ${validLevels.join(", ")}`);
             }
         }
     })

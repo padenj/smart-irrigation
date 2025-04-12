@@ -11,10 +11,16 @@ export class SystemSettings {
     timezone = "America/Denver";
 
     @Fields.string()
+    latitude = "39.9205"; // Latitude for weather API
+
+    @Fields.string()
+    longitude = "-105.0867"; // Longitude for weather API
+
+    @Fields.string()
     temperatureUnit = "F"; // F or C
 
     @Fields.string()
-    weatherService = "openweathermap"; // openweathermap or weatherapi
+    weatherService = "openmateo" // openweathermap or weatherapi
 
     @Fields.string()
     weatherApiKey = "";

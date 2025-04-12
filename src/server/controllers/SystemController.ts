@@ -4,6 +4,7 @@ import { SystemSettings } from '../../shared/systemSettings';
 import { DisplayController } from './DisplayController';
 import { WeatherController } from './WeatherController';
 import { ProgramController } from './ProgramController';
+import { ZoneController } from './ZoneController';
 
 export const systemStatusRepo = repo(SystemStatus);
 
@@ -38,7 +39,12 @@ export class SystemController {
 
     @BackendMethod({ allowed: true, apiPrefix: 'system' })
     static async init() {
+        const systemSettings = await repo(SystemSettings).findFirst();
         WeatherController.RetrieveWeather();
+        DisplayController.setTime(systemSettings?.timezone|| 'UTC');
+        ProgramController.stopActiveProgram();
+        ZoneController.stopAllZones();
+        
         return "Initialization Completed Successfully";
     }
 

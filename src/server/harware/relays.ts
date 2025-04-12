@@ -52,7 +52,8 @@ class RelayController implements IRelayController {
     public turnOff(pin: number): void {
         const relay = this.relays.get(pin);
         if (!relay) {
-            throw new Error(`Relay on pin ${pin} is not initialized`);
+            console.error(`Relay on pin ${pin} is not initialized`);
+            return;
         }
         relay.digitalWrite(1); // Turn off the relay
     }

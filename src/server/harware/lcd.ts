@@ -16,14 +16,14 @@ class LCDWrapper {
                 clearSync: () => {},
                 setCursor: (col: number, row: number) => {},
                 printSync: (text: string) => {},
+                printLineSync: (line: number, text: string) => {},
             } as unknown as LCD;
             console.log('Mock LCD initialized');
         } else {
             this.lcd = new LCD(1, 0x27, LCD_COLS, LCD_ROWS);
             this.lcd.beginSync();
             this.lcd.clearSync();
-            this.lcd.setCursor(0, 0);
-            this.lcd.printSync('LCD Initialized');
+            this.lcd.printLineSync(0, 'LCD Initialized');
             console.log('LCD initialized');
         }
     }
@@ -130,8 +130,7 @@ class LCDManager implements ILCDManager {
 
         // If the current page is being displayed, update the LCD
         if (pageIndex === this.currentPageIndex) {
-            this.lcd.setCursor(0, lineIndex);
-            this.lcd.printSync(updatedLine);
+            this.lcd.printLineSync(lineIndex, updatedLine);
             console.log(`Inserting text into LCD p${pageIndex}:l${lineIndex} '${updatedLine}'`);
         }
     }
@@ -159,8 +158,7 @@ class LCDManager implements ILCDManager {
         console.log('Cycling to page:', pageNum, page);
         this.lcd.clearSync();
         page.forEach((line, index) => {
-            this.lcd.setCursor(0, index);
-            this.lcd.printSync(line);
+            this.lcd.printLineSync(index, line);
         });
     }
 }

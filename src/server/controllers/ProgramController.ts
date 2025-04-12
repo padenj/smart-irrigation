@@ -6,6 +6,7 @@ import { DateTimeUtils } from '../utilities/DateTimeUtils';
 import { systemStatusRepo } from './SystemController';
 import { ZoneController } from './ZoneController';
 import { LogController } from './LogController';
+import { DisplayController } from './DisplayController';
 
 
 export class ProgramController {
@@ -193,6 +194,7 @@ export class ProgramController {
         const systemStatus = await systemStatusRepo.findFirst();
         if (!systemStatus || !systemStatus.activeProgram) {
             console.log('No active program to stop.');
+            DisplayController.setActiveProgram();
             return "No active program to stop.";
         }
 

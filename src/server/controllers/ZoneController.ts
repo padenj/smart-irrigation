@@ -1,5 +1,5 @@
 import { BackendMethod, repo } from 'remult';
-import { Zone } from '../../shared/zones';
+import { ValidPorts, Zone } from '../../shared/zones';
 import { IRelayController } from '../types/hardware';
 import { DisplayController } from './DisplayController';
 import { systemStatusRepo } from './SystemController';
@@ -8,6 +8,26 @@ import { LogController } from './LogController';
 
 export class ZoneController {
     static relays: IRelayController;
+
+    @BackendMethod({ allowed: true, apiPrefix: 'zones' })
+    static async stopAllZones() {
+        const systemStatus = await systemStatusRepo.findFirst();
+        if (systemStatus) {
+            const activeZone = systemStatus.activeZone;
+            if (activeZone) {
+                console.log(`Stopping active zone: ${activeZone.name}`);
+                LogController.writeLog(`Stopping active zone: ${activeZone.name}`, "INFO");
+                ZoneController.stopZone(activeZone.id);
+            }
+        }
+
+        DisplayController.setActiveZone();
+        
+        // Make sure all GPIO pins are turned off
+        for (const pin of ValidPorts) {
+            ZoneController.relays.turnOff(pin);
+        }
+    }
 
     @BackendMethod({ allowed: true, apiPrefix: 'zones' })
     static async runZone(zoneId: string, duration: number) {

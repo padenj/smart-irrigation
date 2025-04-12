@@ -29,7 +29,7 @@ export class DisplayController {
         if (!zoneName) {
             zoneName = 'None Active';
         }
-        const zoneText = `Zone: ${zoneName.slice(0, 15)} ${duration ? `(${duration}s)` : ''}`;
+        const zoneText = `Zone: ${zoneName.slice(0, 10)} ${duration ? `(${duration}s)` : ''}`;
         DisplayController.insertText(0, 2, 0, zoneText);
     }
 

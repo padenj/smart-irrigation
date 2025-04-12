@@ -118,17 +118,20 @@ export function SystemLogs({ }: SystemLogsProps) {
         <div className="divide-y divide-gray-200">
           {filteredLogs.length > 0 ? (
             filteredLogs.map((log, index) => (
-              <div
+                <div
                 key={index}
                 className={`p-4 ${getLogClass(log.level)} flex items-start space-x-3`}
-              >
+                >
                 {getLogIcon(log.level)}
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-gray-900">
-                    {log.message}
+                  {log.message}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                  {log.timestamp.toLocaleString()}
                   </p>
                 </div>
-              </div>
+                </div>
             ))
           ) : (
             <div className="p-4 text-center text-gray-500">

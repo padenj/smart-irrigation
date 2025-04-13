@@ -118,6 +118,7 @@ export class ProgramController {
         // Calculate the next scheduled run date for the program
         ProgramController.calculateProgramSchedule(programId, true);
         LogController.writeLog(`Running program ${program.name}`);
+        DisplayController.setActiveProgram(program.name);
         console.log(`Running program ${program.name}`);
 
         // Set the active program in the system status

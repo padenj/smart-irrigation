@@ -49,6 +49,8 @@ export const fetchWeather = async ({ latitude, longitude, timezone, temperatureU
         "timezone": timezone,
         "forecast_days": 1,
         "temperature_unit": temperatureUnit === "F" ? "fahrenheit" : "celsius",
+        "wind_speed_unit": "mph",
+        "precipitation_unit": "inch",
     };
 
     const url = "https://api.open-meteo.com/v1/forecast";

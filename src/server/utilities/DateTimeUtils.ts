@@ -25,6 +25,12 @@ export class DateTimeUtils {
         return dateTime.toFormat('MM/dd/yy hh:mm a');
     }
 
+    static isoToTimeShortStr(dateString: string | null, timezone: string | null): string {
+        if (!dateString) return '';
+        const dateTime = DateTime.fromISO(dateString, { zone: timezone || 'UTC' });
+        return dateTime.toFormat('h:mma');
+    }
+
     static toDateTimeShortStr(date: Date|null, timezone: string | null): string {
         if (!date) return '';
         const dateTime = DateTime.fromJSDate(date).setZone(timezone || 'UTC');

@@ -5,10 +5,10 @@ import { DateTimeUtils } from '../utilities/DateTimeUtils';
 
 export class DisplayController {
     static setWeatherData(weatherData: WeatherData) {
-        DisplayController.insertText(1, 0, 0, `Current: ${Math.round(weatherData.current.temperature)}°${weatherData.temperatureUnit}`);
-        DisplayController.insertText(1, 1, 0, `High: ${Math.round(weatherData.forecast.temperature2mMax)}°${weatherData.temperatureUnit} Low: ${Math.round(weatherData.forecast.temperature2mMin)}°${weatherData.temperatureUnit}`);
-        DisplayController.insertText(1, 2, 0, `${weatherData.current.weatherCodeText}`);
-        DisplayController.insertText(1, 3, 0, `Precipitation: ${weatherData.current.precipitation}`);
+        DisplayController.insertText(1, 0, 0, `Now: ${Math.round(weatherData.current.temperature)}${weatherData.temperatureUnit} ${weatherData.current.weatherCodeText}`);
+        DisplayController.insertText(1, 1, 0, `High: ${Math.round(weatherData.forecast.temperature2mMax)}${weatherData.temperatureUnit} Low: ${Math.round(weatherData.forecast.temperature2mMin)}${weatherData.temperatureUnit}`);
+        DisplayController.insertText(1, 2, 0, `Sun: ${DateTimeUtils.isoToTimeShortStr(weatherData.forecast.sunrise, weatherData.timezone)} - ${DateTimeUtils.isoToTimeShortStr(weatherData.forecast.sunset, weatherData.timezone)}`);
+        DisplayController.insertText(1, 3, 0, `Prec: ${weatherData.current.precipitation}in Wind: ${Math.round(weatherData.current.windSpeed10m)}mph`);
     }
 
     static lcdManager: ILCDManager;
@@ -21,16 +21,16 @@ export class DisplayController {
         if (!programName) {
             programName = 'None Active';
         }
-        const programText = `Program: ${programName.slice(0, 15)}`;
-        DisplayController.insertText(0, 1, 0, programText);
+        const programText = `Prog: ${programName.slice(0, 14)}`;
+        DisplayController.writeLine(0, 1, programText);
     }
 
     static setActiveZone(zoneName?: string, duration?: number) {
         if (!zoneName) {
             zoneName = 'None Active';
         }
-        const zoneText = `Zone: ${zoneName.slice(0, 10)} ${duration ? `(${duration}s)` : ''}`;
-        DisplayController.insertText(0, 2, 0, zoneText);
+        const zoneText = `Zone: ${zoneName.slice(0, 10).padEnd(10, ' ')} ${duration ? `${duration}s` : ''}`;
+        DisplayController.writeLine(0, 2, zoneText);
     }
 
     static async writeLine(pageIndex: number, lineIndex: number, text: string) {

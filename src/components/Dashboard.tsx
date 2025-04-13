@@ -29,6 +29,7 @@ export function Dashboard({}: DashboardProps) {
           program,
           nextScheduledRunTime: DateTimeUtils.fromISODateTime(program.nextScheduledRunTime, systemSettings.timezone),
         }))
+        .filter(item => item.nextScheduledRunTime !== null)
         .sort((a, b) => (a.nextScheduledRunTime?.getTime() ?? 0) - (b.nextScheduledRunTime?.getTime() ?? 0))[0] || null;
       setNextProgram(nextProgram.program);
     };

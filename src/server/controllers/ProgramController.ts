@@ -211,6 +211,7 @@ export class ProgramController {
 
         LogController.writeLog(`Program ${program.name} stopped and all zones turned off.`);
         console.log('Active program stopped and all zones turned off.');
+        DisplayController.setActiveProgram();
         return "Active program stopped successfully.";
     }
 

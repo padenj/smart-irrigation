@@ -8,26 +8,31 @@ import { ZoneController } from './ZoneController';
 import { LogController } from './LogController';
 import { DisplayController } from './DisplayController';
 
-
 export class ProgramController {
-    /**
-     * Calculates the next scheduled run date for each program.
-     */
-    @BackendMethod({ allowed: true, apiPrefix: 'programs' })
-    static async calculateProgramSchedule(programId: string, skipToday?: boolean) {
 
-        const programRepo = repo(Program);
-        const program = await programRepo.findId(programId);
-        if (!program) {
-            console.error(`Program with ID ${programId} not found`);
-            LogController.writeLog(`Program with ID ${programId} not found in Schedule Calculation`, "ERROR");
-            return "Program not found.";
+    @BackendMethod({ allowed: true, apiPrefix: 'programs' })
+    static async calculateNextScheuleDate(program: Program, skipToday?: boolean): Promise<string | null> {
+
+        if (!program.zones || program.zones.length === 0) {
+            console.log(`Program ${program.name} has no zones. Cannot calculate schedule.`);
+            return null;
         }
+
+        if (!program.daysOfWeek || program.daysOfWeek.length === 0) {
+            console.log(`Program ${program.name} has no days of the week specified. Cannot calculate schedule.`);
+            return null;
+        }
+
+        if (!program.startTime) {
+            console.log(`Program ${program.name} has no start time specified. Cannot calculate schedule.`);
+            return null;
+        }
+
         const settings = await repo(SystemSettings).findFirst();
         const timezone = settings?.timezone || 'UTC';
-        //console.log(`Calculating schedule for program ${program.name} in timezone ${timezone}`);
+        console.log(`Calculating schedule for program ${program.name} in timezone ${timezone}`);
 
-        const getNextRunDate = (daysOfWeek: number[], startTime: string, lastRunDate: Date | null): Date | null => {
+        const getNextRunDate = (daysOfWeek: number[], startTime: string, lastRunDate: Date | null): string | null => {
             if (!daysOfWeek || daysOfWeek.length === 0) {
                 console.log('No days of the week provided');
                 return null;
@@ -42,9 +47,7 @@ export class ProgramController {
             for (let i = 0; i < sortedDaysOfWeek.length; i++) {
                 const dayOfWeek = sortedDaysOfWeek[(i + sortedDaysOfWeek.indexOf(todayDayOfWeek) + (skipToday ? 1 : 0)) % sortedDaysOfWeek.length];
 
-                //console.log(`Checking dayOfWeek: ${dayOfWeek}, todayDayOfWeek: ${todayDayOfWeek}`);
                 let candidateDate = now.set({ hour: hours, minute: minutes, second: 0, millisecond: 0 });
-               // console.log(`Candidate date before adjustment: ${candidateDate.toString()}`);
                 if (dayOfWeek >= todayDayOfWeek) {
                     // If the dayOfWeek is today (and skipToday is false) or later this week
                     candidateDate = candidateDate.plus({ days: dayOfWeek - todayDayOfWeek });
@@ -70,20 +73,35 @@ export class ProgramController {
                     nextRunDate = candidateDate.toJSDate();
                 }
             }
-
-            return nextRunDate;
+            console.log(`Next run date for program ${program.name} is ${nextRunDate}`);
+            return DateTimeUtils.toISODateTime(nextRunDate, timezone);
         };
 
         const { lastRunTime, daysOfWeek, startTime } = program;
         const lastRunDate = lastRunTime ? DateTimeUtils.fromISODateTime(lastRunTime, timezone) : null;
-        const nextRunDate = getNextRunDate(daysOfWeek, startTime, lastRunDate);
+        return getNextRunDate(daysOfWeek, startTime, lastRunDate);
+    }
 
-        if (nextRunDate) {
-            await programRepo.update(program.id, { nextScheduledRunTime: DateTimeUtils.toISODateTime(nextRunDate, timezone) });
-        } else {
-            await programRepo.update(program.id, { nextScheduledRunTime: null });
+    /**
+     * Calculates the next scheduled run date for each program.
+     */
+    @BackendMethod({ allowed: true, apiPrefix: 'programs' })
+    static async updateProgramSchedule(programId: string, skipToday?: boolean) {
+
+        const programRepo = repo(Program);
+
+        const program = await programRepo.findId(programId);
+
+        if (!program) {
+            console.error(`Program with ID ${programId} not found`);
+            LogController.writeLog(`Program with ID ${programId} not found in Schedule Calculation`, "ERROR");
+            return "Program not found.";
         }
+        
+        const nextRunDate = await ProgramController.calculateNextScheuleDate(program, skipToday);
 
+        await programRepo.update(program.id, { nextScheduledRunTime: nextRunDate });
+       
         return "Next scheduled run dates calculated successfully";
     }
 
@@ -93,7 +111,7 @@ export class ProgramController {
         const programs = await programRepo.find();
 
         for (const program of programs) {
-            this.calculateProgramSchedule(program.id);
+            this.updateProgramSchedule(program.id);
         }
     }
 
@@ -116,7 +134,7 @@ export class ProgramController {
         }
 
         // Calculate the next scheduled run date for the program
-        ProgramController.calculateProgramSchedule(programId, true);
+        ProgramController.updateProgramSchedule(programId, true);
         LogController.writeLog(`Running program ${program.name}`);
         DisplayController.setActiveProgram(program.name);
         console.log(`Running program ${program.name}`);

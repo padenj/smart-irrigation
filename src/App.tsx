@@ -14,6 +14,9 @@ function App() {
   
   return (
     <div className="min-h-screen bg-gray-50">
+
+      <SettingsProvider>
+        <StatusProvider>
       {/* Header */}
       <Header />
 
@@ -76,8 +79,6 @@ function App() {
       </nav>
 
       {/* Main Content */}
-      <SettingsProvider>
-        <StatusProvider>
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {activeTab === 'dashboard' && (
               <Dashboard />
@@ -95,13 +96,14 @@ function App() {
               <Settings />
             )}
           </main>
-        </StatusProvider>
-      </SettingsProvider>
 
       {/* Footer */}
       <footer className=" bottom-0 right-0 m-4">
         <VersionDisplay />
       </footer>
+
+        </StatusProvider>
+      </SettingsProvider>
     </div>
   );
 }

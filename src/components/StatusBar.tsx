@@ -1,19 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { remult } from 'remult';
-import { SystemStatus } from '../shared/systemStatus';
+import React, {  } from 'react';
 import { Cloud } from 'lucide-react';
-
-const controllerRepo = remult.repo(SystemStatus);
+import { useSettingsContext } from './SettingsContext';
+import { useStatusContext } from './StatusContext';
 
 const Status: React.FC = () => {
-    const [systemStatus, setSystemStatus] = useState<SystemStatus>();
-
-    useEffect(() => {
-        controllerRepo.liveQuery({ where: { id: 0 } }).subscribe(info => {
-            const changes = info.applyChanges([]);
-            setSystemStatus(changes[0]);
-        });
-    }, [])
+    const systemStatus = useStatusContext();
+    const systemSettings = useSettingsContext();
 
     if (!systemStatus) {
         return "Loading..."
@@ -22,7 +14,7 @@ const Status: React.FC = () => {
     return (
         <>
             <Cloud className="h-5 w-5" />
-            <span>{systemStatus?.weatherData?.current.temperature?.toFixed(1)}°C</span>
+            <span>{systemStatus?.weatherData?.current.temperature?.toFixed(1)}°{systemSettings.temperatureUnit}</span>
             <span>{systemStatus?.weatherData?.current.relativeHumidity?.toFixed(0)}% RH</span>
         </>
     );

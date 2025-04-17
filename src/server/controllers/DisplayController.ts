@@ -5,10 +5,17 @@ import { DateTimeUtils } from '../utilities/DateTimeUtils';
 
 export class DisplayController {
     static setWeatherData(weatherData: WeatherData) {
-        DisplayController.insertText(1, 0, 0, `Now: ${Math.round(weatherData.current.temperature)}${weatherData.temperatureUnit} ${weatherData.current.weatherCodeText}`);
-        DisplayController.insertText(1, 1, 0, `High: ${Math.round(weatherData.forecast.temperature2mMax)}${weatherData.temperatureUnit} Low: ${Math.round(weatherData.forecast.temperature2mMin)}${weatherData.temperatureUnit}`);
-        DisplayController.insertText(1, 2, 0, `Sun: ${DateTimeUtils.isoToTimeShortStr(weatherData.forecast.sunrise, weatherData.timezone)} - ${DateTimeUtils.isoToTimeShortStr(weatherData.forecast.sunset, weatherData.timezone)}`);
-        DisplayController.insertText(1, 3, 0, `Prec: ${weatherData.current.precipitation}" Wind: ${Math.round(weatherData.current.windSpeed10m)}mph`);
+        DisplayController.insertText(1, 0, 0, `Now: ${Math.round(weatherData.current.temperature)}${weatherData.temperatureUnit} ${weatherData.current.conditionText}`);
+        DisplayController.insertText(1, 1, 0, `High: ${Math.round(weatherData.forecast.today.temperatureHigh)}${weatherData.temperatureUnit} Low: ${Math.round(weatherData.forecast.today.temperatureLow)}${weatherData.temperatureUnit}`);
+        const formatTime = (time: string|null) => {
+            if (!time) {
+                return 'N/A';
+            }
+            const [hours, minutes, period] = time.match(/(\d+):(\d+)\s*(AM|PM)/i)!.slice(1);
+            return `${parseInt(hours, 10)}:${minutes}${period.toLowerCase()}`;
+        };
+        DisplayController.insertText(1, 2, 0, `Sun: ${formatTime(weatherData.forecast.today.sunrise)}-${formatTime(weatherData.forecast.today.sunset)}`);
+        DisplayController.insertText(1, 3, 0, `Prec: ${weatherData.current.precipitation}" Wind: ${Math.round(weatherData.current.windSpeed)}${weatherData.measurementUnit === 'metric' ? 'kph' : 'mph'}`);
     }
 
     static lcdManager: ILCDManager;

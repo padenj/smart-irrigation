@@ -47,7 +47,7 @@ export const fetchWeather = async ({ latitude, longitude, timezone, temperatureU
         "daily": ["sunrise", "sunset", "temperature_2m_max", "temperature_2m_min", "rain_sum", "showers_sum", "snowfall_sum", "precipitation_sum", "precipitation_hours", "precipitation_probability_max", "wind_speed_10m_max", "wind_gusts_10m_max", "wind_direction_10m_dominant", "uv_index_max"],
         "current": ["temperature_2m", "precipitation", "rain", "showers", "snowfall", "is_day", "relative_humidity_2m", "cloud_cover", "wind_speed_10m", "wind_direction_10m", "wind_gusts_10m", "weather_code", "pressure_msl", "surface_pressure", "apparent_temperature"],
         "timezone": timezone,
-        "forecast_days": 1,
+        "forecast_days": 2,
         "temperature_unit": temperatureUnit === "F" ? "fahrenheit" : "celsius",
         "wind_speed_unit": "mph",
         "precipitation_unit": "inch",
@@ -88,73 +88,61 @@ export const fetchWeather = async ({ latitude, longitude, timezone, temperatureU
             current: {
                 temperature: data?.current?.temperature_2m || 0,
                 precipitation: data?.current?.precipitation || 0,
-                rain: data?.current?.rain || 0,
-                showers: data?.current?.showers || 0,
-                snowfall: data?.current?.snowfall || 0,
                 isDay: data?.current?.is_day || 0,
-                relativeHumidity2m: data?.current?.relative_humidity_2m || 0,
+                relativeHumidity: data?.current?.relative_humidity_2m || 0,
                 cloudCover: data?.current?.cloud_cover || 0,
-                weatherCode: data?.current?.weather_code || 0,
-                weatherCodeText: weatherCodeMapping[data?.current?.weather_code] || "Unknown",
-                windSpeed10m: data?.current?.wind_speed_10m || 0,
-                windDirection10m: data?.current?.wind_direction_10m || 0,
-                windGusts10m: data?.current?.wind_gusts_10m || 0,
-                pressureMsl: data?.current?.pressure_msl || 0,
-                surfacePressure: data?.current?.surface_pressure || 0,
-                apparentTemperature: data?.current?.apparent_temperature || 0,
+                conditionCode: data?.current?.weather_code || 0,
+                conditionText: weatherCodeMapping[data?.current?.weather_code] || "Unknown",
+                conditionIcon: `https://www.weatherbit.io/static/img/icons/${data?.current?.weather_code}.png`,
+                windSpeed: data?.current?.wind_speed_10m || 0,
+                windDirection: data?.current?.wind_direction_10m || 0,
+                windGusts: data?.current?.wind_gusts_10m || 0
             },
             forecast: {
-                sunrise: sunrise.setZone(data.timezone).toISO(),
-                sunset: sunset.setZone(data.timezone).toISO(),
-                temperature2mMax: data?.daily?.temperature_2m_max?.[0] || 0,
-                temperature2mMin: data?.daily?.temperature_2m_min?.[0] || 0,
-                rainSum: data?.daily?.rain_sum?.[0] || 0,
-                showersSum: data?.daily?.showers_sum?.[0] || 0,
-                snowfallSum: data?.daily?.snowfall_sum?.[0] || 0,
-                precipitationSum: data?.daily?.precipitation_sum?.[0] || 0,
-                precipitationHours: data?.daily?.precipitation_hours?.[0] || 0,
-                precipitationProbabilityMax: data?.daily?.precipitation_probability_max?.[0] || 0,
-                windSpeed10mMax: data?.daily?.wind_speed_10m_max?.[0] || 0,
-                windGusts10mMax: data?.daily?.wind_gusts_10m_max?.[0] || 0,
-                windDirection10mDominant: data?.daily?.wind_direction_10m_dominant?.[0] || 0,
-                uvIndexMax: data?.daily?.uv_index_max?.[0] || 0,
+                today: {
+                    sunrise: sunrise.setZone(data.timezone).toISO(),
+                    sunset: sunset.setZone(data.timezone).toISO(),
+                    temperatureHigh: data?.daily?.temperature_2m_max?.[0] || 0,
+                    temperatureLow: data?.daily?.temperature_2m_min?.[0] || 0,
+                    totalSnowfall: data?.daily?.snowfall_sum?.[0] || 0,
+                    totalPrecipitation: data?.daily?.precipitation_sum?.[0] || 0,
+                    precipitationProbability: data?.daily?.precipitation_probability_max?.[0] || 0,
+                    windAverage: data?.daily?.wind_speed_10m_max?.[0] || 0,
+                    windGusts: data?.daily?.wind_gusts_10m_max?.[0] || 0,
+                    windDirection: data?.daily?.wind_direction_10m_dominant?.[0] || 0,
+                    uvIndexMax: data?.daily?.uv_index_max?.[0] || 0,
+                    conditionText: weatherCodeMapping[data?.daily?.weather_code?.[0]] || "Unknown",
+                    conditionIcon: `https://www.weatherbit.io/static/img/icons/${data?.daily?.weather_code?.[0]}.png`,
+                    conditionCode: data?.daily?.weather_code?.[0] || 0,
+                    moonrise: data?.daily?.moonrise?.[0] || null,
+                    moonset: data?.daily?.moonset?.[0] || null,
+                    averageHumidity: data?.daily?.precipitation_hours?.[0] || 0,
+                    showProbability: data?.daily?.show_probability?.[0] || 0
+                }
+                ,
+                tomorrow: {
+                    sunrise: data?.daily?.sunrise?.[1] ? DateTime.fromISO(data.daily.sunrise[1], { zone: data.timezone }).toISO() : null,
+                    sunset: data?.daily?.sunset?.[1] ? DateTime.fromISO(data.daily.sunset[1], { zone: data.timezone }).toISO() : null,
+                    temperatureHigh: data?.daily?.temperature_2m_max?.[1] || 0,
+                    temperatureLow: data?.daily?.temperature_2m_min?.[1] || 0,
+                    totalSnowfall: data?.daily?.snowfall_sum?.[1] || 0,
+                    totalPrecipitation: data?.daily?.precipitation_sum?.[1] || 0,
+                    precipitationProbability: data?.daily?.precipitation_probability_max?.[1] || 0,
+                    windAverage: data?.daily?.wind_speed_10m_max?.[1] || 0,
+                    windGusts: data?.daily?.wind_gusts_10m_max?.[1] || 0,
+                    windDirection: data?.daily?.wind_direction_10m_dominant?.[1] || 0,
+                    uvIndexMax: data?.daily?.uv_index_max?.[1] || 0,
+                    conditionText: weatherCodeMapping[data?.daily?.weather_code?.[1]] || "Unknown",
+                    conditionIcon: `https://www.weatherbit.io/static/img/icons/${data?.daily?.weather_code?.[1]}.png`,
+                    conditionCode: data?.daily?.weather_code?.[1] || 0,
+                    moonrise: data?.daily?.moonrise?.[1] || null,
+                    moonset: data?.daily?.moonset?.[1] || null,
+                    averageHumidity: data?.daily?.precipitation_hours?.[1] || 0,
+                    showProbability: data?.daily?.show_probability?.[1] || 0
+                }
             },
             lastUpdated: new Date().toISOString(),
         };
-        
-        console.log("Current Weather:");
-        console.log(`Temperature (2m): ${weatherData.current.temperature}°F`);
-        console.log(`Precipitation: ${weatherData.current.precipitation}mm`);
-        console.log(`Rain: ${weatherData.current.rain}mm`);
-        console.log(`Showers: ${weatherData.current.showers}mm`);
-        console.log(`Snowfall: ${weatherData.current.snowfall}mm`);
-        console.log(`Is Day: ${weatherData.current.isDay ? "Yes" : "No"}`);
-        console.log(`Relative Humidity (2m): ${weatherData.current.relativeHumidity2m}%`);
-        console.log(`Cloud Cover: ${weatherData.current.cloudCover}%`);
-        console.log(`Weather Code: ${weatherData.current.weatherCode} (${weatherData.current.weatherCodeText})`);
-        console.log(`Wind Speed (10m): ${weatherData.current.windSpeed10m} m/s`);
-        console.log(`Wind Direction (10m): ${weatherData.current.windDirection10m}°`);
-        console.log(`Wind Gusts (10m): ${weatherData.current.windGusts10m} m/s`);
-        console.log(`Pressure (MSL): ${weatherData.current.pressureMsl} hPa`);
-        console.log(`Surface Pressure: ${weatherData.current.surfacePressure} hPa`);
-        console.log(`Apparent Temperature: ${weatherData.current.apparentTemperature}°F`);
-        console.log("Forecast:");
-        console.log(`Sunrise: ${weatherData.forecast.sunrise}`);
-        console.log(`Sunset: ${weatherData.forecast.sunset}`);
-        console.log(`Max Temperature (2m): ${weatherData.forecast.temperature2mMax}°F`);
-        console.log(`Min Temperature (2m): ${weatherData.forecast.temperature2mMin}°F`);
-        console.log(`Rain Sum: ${weatherData.forecast.rainSum}mm`);
-        console.log(`Showers Sum: ${weatherData.forecast.showersSum}mm`);
-        console.log(`Snowfall Sum: ${weatherData.forecast.snowfallSum}mm`);
-        console.log(`Precipitation Sum: ${weatherData.forecast.precipitationSum}mm`);
-        console.log(`Precipitation Hours: ${weatherData.forecast.precipitationHours} hours`);
-        console.log(`Max Precipitation Probability: ${weatherData.forecast.precipitationProbabilityMax}%`);
-        console.log(`Max Wind Speed (10m): ${weatherData.forecast.windSpeed10mMax} m/s`);
-        console.log(`Max Wind Gusts (10m): ${weatherData.forecast.windGusts10mMax} m/s`);
-        console.log(`Dominant Wind Direction (10m): ${weatherData.forecast.windDirection10mDominant}°`);
-        console.log(`Max UV Index: ${weatherData.forecast.uvIndexMax}`);
-        console.log("Weather data fetched successfully.");
-        console.log("Weather data:", weatherData);
 
         return weatherData;
     } catch (error) {

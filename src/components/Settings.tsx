@@ -211,6 +211,32 @@ console.log('here');
                       </label>
                     </div>
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Measurement Unit</label>
+                    <div className="mt-1 space-x-4">
+                    <label className="inline-flex items-center">
+                        <input
+                          type="radio"
+                          value="imperial"
+                          checked={settings.measurementUnit === 'imperial'}
+                          onChange={(e) => handleChange('measurementUnit', e.target.value)}
+                          className="form-radio text-blue-600"
+                        />
+                        <span className="ml-2">Imperial</span>
+                      </label>
+                      <label className="inline-flex items-center">
+                        <input
+                          type="radio"
+                          value="metric"
+                          checked={settings.measurementUnit === 'metric'}
+                          onChange={(e) => handleChange('measurementUnit', e.target.value)}
+                          className="form-radio text-blue-600"
+                        />
+                        <span className="ml-2">Metric</span>
+                      </label>
+                      
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -244,7 +270,7 @@ console.log('here');
                     <input
                       type="number"
                       value={settings.moistureSensorReadingInterval}
-                      onChange={(e) => handleChange('moistureReadingInterval', parseInt(e.target.value))}
+                      onChange={(e) => handleChange('moistureSensorReadingInterval', parseInt(e.target.value))}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>
@@ -253,7 +279,7 @@ console.log('here');
                     <input
                       type="number"
                       value={settings.moistureSensorCalibration}
-                      onChange={(e) => handleChange('moistureReadingInterval', parseInt(e.target.value))}
+                      onChange={(e) => handleChange('moistureSensorCalibration', parseInt(e.target.value))}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>
@@ -270,12 +296,11 @@ console.log('here');
                     <label className="block text-sm font-medium text-gray-700">Weather Service</label>
                     <select
                       value={settings.weatherService}
-                      onChange={(e) => handleChange('service', e.target.value)}
+                      onChange={(e) => handleChange('weatherService', e.target.value)}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     >
-                      <option value="openweathermap">OpenWeatherMap</option>
                       <option value="weatherapi">WeatherAPI</option>
-                      <option value="mock">Mock (Development)</option>
+                      <option value="openmateo">OpenMateo (Forecast Only)</option>
                     </select>
                   </div>
                   <div>
@@ -283,7 +308,7 @@ console.log('here');
                     <input
                       type="password"
                       value={settings.weatherApiKey}
-                      onChange={(e) => handleChange('apiKey', e.target.value)}
+                      onChange={(e) => handleChange('weatherApiKey', e.target.value)}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>
@@ -312,7 +337,7 @@ console.log('here');
                     <input
                       type="number"
                       value={settings.weatherUpdateInterval}
-                      onChange={(e) => handleChange('updateInterval', parseInt(e.target.value))}
+                      onChange={(e) => handleChange('weatherUpdateInterval', parseInt(e.target.value))}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>

@@ -23,7 +23,7 @@ const Status: React.FC = () => {
         <>
             <Cloud className="h-5 w-5" />
             <span>{systemStatus?.weatherData?.current.temperature?.toFixed(1)}°C</span>
-            <span>{systemStatus?.weatherData?.current.relativeHumidity2m?.toFixed(0)}% RH</span>
+            <span>{systemStatus?.weatherData?.current.relativeHumidity?.toFixed(0)}% RH</span>
         </>
     );
 };

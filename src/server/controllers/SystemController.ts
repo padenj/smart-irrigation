@@ -40,7 +40,7 @@ export class SystemController {
     @BackendMethod({ allowed: true, apiPrefix: 'system' })
     static async init() {
         const systemSettings = await repo(SystemSettings).findFirst();
-        WeatherController.RetrieveWeather();
+        WeatherController.RetrieveWeather(true);
         DisplayController.setTime(systemSettings?.timezone|| 'UTC');
         ProgramController.stopActiveProgram();
         ZoneController.stopAllZones();
@@ -51,7 +51,7 @@ export class SystemController {
 
     @BackendMethod({ allowed: true, apiPrefix: 'system' })
     static async update() {
-        WeatherController.RetrieveWeather();
+        WeatherController.RetrieveWeather(false);
         return "Update Completed Successfully";
     }
 

@@ -1,9 +1,10 @@
 import { Gpio as RealGpio } from 'pigpio';
 import { IRelayController } from '../types/hardware';
 import dotenv from 'dotenv';
+import { ValidPorts } from '../../shared/zones';
 dotenv.config({ path: '.env.local' });
 
-const PINS = [5, 6, 12, 13];
+const PINS = ValidPorts;
 interface IGpio {
     digitalWrite(value: 0 | 1): void;
 }

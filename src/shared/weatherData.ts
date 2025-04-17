@@ -1,6 +1,28 @@
 // Note: The order of weather variables in the URL query and the indices below need to match!
+export interface WeatherForecastData {
+    sunrise: string | null;
+    sunset: string | null;
+    moonrise: string | null;
+    moonset: string | null;
+    temperatureHigh: number;
+    temperatureLow: number;
+    averageHumidity: number;
+    totalSnowfall: number;
+    totalPrecipitation: number;
+    precipitationProbability: number;
+    showProbability: number;
+    windAverage: number;
+    windGusts: number;
+    windDirection: number;
+    uvIndexMax: number;
+    conditionText: string;
+    conditionIcon: string;
+    conditionCode: number;
+}
+
 export interface WeatherData {
     temperatureUnit: 'F' | 'C';
+    measurementUnit: 'imperial' | 'metric';
     timezone: string;
     latitude: number;
     longitude: number;
@@ -8,36 +30,19 @@ export interface WeatherData {
     current: {
         temperature: number;
         precipitation: number;
-        rain: number;
-        showers: number;
-        snowfall: number;
         isDay: number;
-        relativeHumidity2m: number;
+        relativeHumidity: number;
         cloudCover: number;
-        weatherCode: number;
-        weatherCodeText: string;
-        windSpeed10m: number;
-        windDirection10m: number;
-        windGusts10m: number;
-        pressureMsl: number;
-        surfacePressure: number;
-        apparentTemperature: number;
+        conditionCode: number;
+        conditionText: string;
+        conditionIcon: string;
+        windSpeed: number;
+        windDirection: number;
+        windGusts: number;
     };
     forecast: {
-        sunrise: string | null;
-        sunset: string | null;
-        temperature2mMax: number;
-        temperature2mMin: number;
-        rainSum: number;
-        showersSum: number;
-        snowfallSum: number;
-        precipitationSum: number;
-        precipitationHours: number;
-        precipitationProbabilityMax: number;
-        windSpeed10mMax: number;
-        windGusts10mMax: number;
-        windDirection10mDominant: number;
-        uvIndexMax: number;
+        today: WeatherForecastData;
+        tomorrow: WeatherForecastData;
     };
 }
 

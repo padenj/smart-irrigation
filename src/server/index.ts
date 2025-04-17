@@ -44,7 +44,7 @@ cron.schedule('*/15 * * * * *', () => {
     });
 });
 
-// Set up teh daily system refresh job
+// Set up the daily system refresh job
 cron.schedule('0 0 * * *', async () => {
   console.log('Running daily task to refresh the system');
   axios.post(`${`http://localhost:${port}`}/api/system/daily`, {"args":[]})
@@ -54,9 +54,9 @@ cron.schedule('0 0 * * *', async () => {
     
 });
 
-// Set up the 5-minute weather and statistics update cron job
+// Set up the weather and statistics update cron job
 cron.schedule(`*/${UPDATE_FREQUENCY_MINUTES} * * * *`, async () => {
-  console.log('Running 5-minute task to update weather and statistics');
+  //console.log(`Running ${UPDATE_FREQUENCY_MINUTES}-minute task to update weather and statistics`);
   axios.post(`${`http://localhost:${port}`}/api/system/update`, {"args":[]})
     .catch(error => {
       console.error('Error during 5-minute update task:', error.message);

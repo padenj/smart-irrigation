@@ -57,21 +57,23 @@ export function Dashboard({}: DashboardProps) {
             <Droplets className="h-6 w-6 text-blue-600" />
             <div>
               <p className="text-sm text-gray-500">Humidity</p>
-              <p className="text-lg font-medium">{systemStatus?.weatherData?.current.relativeHumidity2m?.toFixed(0)}%</p>
+              <p className="text-lg font-medium">{systemStatus?.weatherData?.current.relativeHumidity?.toFixed(0)}%</p>
             </div>
           </div>
           <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
             <CloudRain className="h-6 w-6 text-blue-600" />
             <div>
               <p className="text-sm text-gray-500">Precipitation</p>
-              <p className="text-lg font-medium">{systemStatus?.weatherData?.current.precipitation?.toFixed(1)}mm</p>
+                <p className="text-lg font-medium">
+                {systemStatus?.weatherData?.current.precipitation?.toFixed(1)} {systemStatus?.weatherData?.measurementUnit === "imperial" ? 'in' : "mm"}
+                </p>
             </div>
           </div>
           <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
-            <Cloud className="h-6 w-6 text-blue-600" />
+            <img src={systemStatus?.weatherData?.current.conditionIcon} alt="Weather Icon" className="h-6 w-6" />
             <div>
               <p className="text-sm text-gray-500">Current</p>
-              <p className="text-lg font-medium">{systemStatus?.weatherData?.current.weatherCodeText}</p>
+              <p className="text-lg font-medium">{systemStatus?.weatherData?.current.conditionText}</p>
             </div>
           </div>
         </div>

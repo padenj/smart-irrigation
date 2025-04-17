@@ -16,11 +16,32 @@ export class SystemSettings {
     @Fields.string()
     longitude = "-105.0867"; // Longitude for weather API
 
-    @Fields.string()
+    @Fields.string<SystemSettings>({
+        validate: (setting) => {
+            if (setting.temperatureUnit !== "F" && setting.temperatureUnit !== "C") {
+                console.error("temperatureUnit must be either 'F' or 'C'");
+            }
+        }
+    })
     temperatureUnit = "F"; // F or C
 
-    @Fields.string()
-    weatherService = "openmateo" // openweathermap or weatherapi
+    @Fields.string<SystemSettings>({
+        validate: (setting) => {
+            if (setting.measurementUnit !== "imperial" && setting.measurementUnit !== "metric") {
+                console.error("measurementUnit must be either 'imperial' or 'metric'");
+            }
+        }
+    })
+    measurementUnit = "imperial"; // imperial or metric
+
+    @Fields.string<SystemSettings>({
+        validate: (setting) => {
+            if (setting.weatherService !== "openmateo" && setting.weatherService !== "weatherapi") {
+                console.error("weatherService must be either 'openmateo' or 'weatherapi'");
+            }
+        }
+    })
+    weatherService = "weatherapi"; // openmateo or weatherapi
 
     @Fields.string()
     weatherApiKey = "";
@@ -29,7 +50,7 @@ export class SystemSettings {
     weatherLocation = ""; // City name or coordinates (lat, lon);
 
     @Fields.number()
-    weatherUpdateInterval = 60; // Interval in minutes for weather updates
+    weatherUpdateInterval = 15; // Interval in minutes for weather updates
     
     @Fields.number()
     moistureSensorAddress = 0x48; // I2C address for the moisture sensor

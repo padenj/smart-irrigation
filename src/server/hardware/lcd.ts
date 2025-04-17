@@ -14,9 +14,9 @@ class LCDWrapper {
         if (process.env.MOCK_HARDWARE === 'true') {
             this.lcd = {
                 clearSync: () => {},
-                setCursor: (col: number, row: number) => {},
-                printSync: (text: string) => {},
-                printLineSync: (line: number, text: string) => {},
+                setCursor: (_col: number, _row: number) => {},
+                printSync: (_text: string) => {},
+                printLineSync: (_line: number, _text: string) => {},
             } as unknown as LCD;
             console.log('Mock LCD initialized');
         } else {
@@ -56,8 +56,8 @@ class LCDManager implements ILCDManager {
             console.error('Error initializing LCD Hardware, using mock instance', error);
             this.lcd = {
                 clearSync: () => {},
-                setCursor: (col: number, row: number) => {},
-                printSync: (text: string) => {},
+                setCursor: (_col: number, _row: number) => {},
+                printSync: (_text: string) => {},
             } as unknown as LCD;
         }
     }

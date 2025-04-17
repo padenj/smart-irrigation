@@ -1,4 +1,4 @@
-import { Droplets, Cloud } from 'lucide-react';
+import { Droplets } from 'lucide-react';
 import React from 'react';
 import Status from './StatusBar';
 

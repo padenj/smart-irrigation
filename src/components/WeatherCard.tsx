@@ -64,6 +64,9 @@ const WeatherCard: React.FC<WeatherCardProps> = ({  }) => {
                             Precipitation Probability: {systemStatus?.weatherData?.forecast?.today?.precipitationProbability}%
                         </p>
                         <p className="text-sm text-gray-600">
+                            Snow Probability: {systemStatus?.weatherData?.forecast?.today?.snowProbability}%    
+                        </p>
+                        <p className="text-sm text-gray-600">
                             Sunrise: {systemStatus?.weatherData?.forecast?.today?.sunrise},
                             Sunset: {systemStatus?.weatherData?.forecast?.today?.sunset}
                         </p>
@@ -92,6 +95,9 @@ const WeatherCard: React.FC<WeatherCardProps> = ({  }) => {
                         </p>
                         <p className="text-sm text-gray-600">
                             Precipitation Probability: {systemStatus?.weatherData?.forecast?.tomorrow?.precipitationProbability}%
+                        </p>
+                        <p className="text-sm text-gray-600">
+                            Snow Probability: {systemStatus?.weatherData?.forecast?.tomorrow?.snowProbability}%
                         </p>
                         <p className="text-sm text-gray-600">
                             Sunrise: {systemStatus?.weatherData?.forecast?.tomorrow?.sunrise},

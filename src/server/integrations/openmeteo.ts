@@ -38,9 +38,10 @@ export interface OpenMateoParameters {
     longitude: number,
     timezone: string,
     temperatureUnit: 'F' | 'C',
+    measurementUnit: 'imperial' | 'metric',
 }
 
-export const fetchWeather = async ({ latitude, longitude, timezone, temperatureUnit}: OpenMateoParameters): Promise<WeatherData|null> => {
+export const fetchWeather = async ({ latitude, longitude, timezone, temperatureUnit, measurementUnit}: OpenMateoParameters): Promise<WeatherData|null> => {
     const params = {
         "latitude": latitude,
         "longitude":longitude,
@@ -81,7 +82,8 @@ export const fetchWeather = async ({ latitude, longitude, timezone, temperatureU
         const sunrise = DateTime.fromISO(data.daily.sunrise[0], {zone: data.timezone});
         const sunset = DateTime.fromISO(data.daily.sunset[0], {zone: data.timezone});
         const weatherData: WeatherData = {
-            temperatureUnit: temperatureUnit,
+            temperatureUnit,
+            measurementUnit,
             latitude: latitude,
             longitude: longitude,
             timezone: data.timezone,
@@ -117,7 +119,7 @@ export const fetchWeather = async ({ latitude, longitude, timezone, temperatureU
                     moonrise: data?.daily?.moonrise?.[0] || null,
                     moonset: data?.daily?.moonset?.[0] || null,
                     averageHumidity: data?.daily?.precipitation_hours?.[0] || 0,
-                    showProbability: data?.daily?.show_probability?.[0] || 0
+                    snowProbability: data?.daily?.show_probability?.[0] || 0
                 }
                 ,
                 tomorrow: {
@@ -138,7 +140,7 @@ export const fetchWeather = async ({ latitude, longitude, timezone, temperatureU
                     moonrise: data?.daily?.moonrise?.[1] || null,
                     moonset: data?.daily?.moonset?.[1] || null,
                     averageHumidity: data?.daily?.precipitation_hours?.[1] || 0,
-                    showProbability: data?.daily?.show_probability?.[1] || 0
+                    snowProbability: data?.daily?.show_probability?.[1] || 0
                 }
             },
             lastUpdated: new Date().toISOString(),

@@ -24,45 +24,67 @@ export class SystemStatus {
 
     @Fields.json()
     weatherData: WeatherData = {
+      temperatureUnit: "F",
+      measurementUnit: "imperial",
       latitude: 0,
       longitude: 0,
       timezone: "",
       current: {
         temperature: 0,
         precipitation: 0,
-        rain: 0,
-        showers: 0,
-        snowfall: 0,
         isDay: 0,
         relativeHumidity: 0,
         cloudCover: 0,
         conditionCode: 0,
         conditionText: "",
+        conditionIcon: "",
         windSpeed: 0,
         windDirection: 0,
-        windGusts: 0,
-        pressureMsl: 0,
-        surfacePressure: 0,
-        apparentTemperature: 0
+        windGusts: 0
       },
       forecast: {
-        sunrise: null,
-        sunset: null,
-        temperatureHigh: 0,
-        temperatureLow: 0,
-        rainSum: 0,
-        showersSum: 0,
-        totalSnowfall: 0,
-        totalPrecipitatoin: 0,
-        precipitationHours: 0,
-        precipitationProbability: 0,
-        windAverage: 0,
-        windGusts: 0,
-        windDirection: 0,
-        uvIndexMax: 0
+        today: {
+          sunrise: null,
+          sunset: null,
+          moonrise: null,
+          moonset: null,
+          averageHumidity: 0,
+          snowProbability: 0,
+          temperatureHigh: 0,
+          temperatureLow: 0,
+          totalSnowfall: 0,
+          totalPrecipitation: 0,
+          precipitationProbability: 0,
+          windAverage: 0,
+          windGusts: 0,
+          windDirection: 0,
+          uvIndexMax: 0,
+          conditionText: "",
+          conditionIcon: "",
+          conditionCode: 0
+        },
+        tomorrow: {
+          sunrise: null,
+          sunset: null,
+          moonrise: null,
+          moonset: null,
+          averageHumidity: 0,
+          snowProbability: 0,
+          temperatureHigh: 0,
+          temperatureLow: 0,
+          totalSnowfall: 0,
+          totalPrecipitation: 0,
+          precipitationProbability: 0,
+          windAverage: 0,
+          windGusts: 0,
+          windDirection: 0,
+          uvIndexMax: 0,
+          conditionText: "",
+          conditionIcon: "",
+          conditionCode: 0
+        },
       },
-      lastUpdated: null,
-      temperatureUnit: "F"
+      lastUpdated: null
     }
 
     @Fields.date()

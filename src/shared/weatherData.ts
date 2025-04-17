@@ -10,7 +10,7 @@ export interface WeatherForecastData {
     totalSnowfall: number;
     totalPrecipitation: number;
     precipitationProbability: number;
-    showProbability: number;
+    snowProbability: number;
     windAverage: number;
     windGusts: number;
     windDirection: number;

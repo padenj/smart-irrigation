@@ -7,8 +7,8 @@ import { SystemController } from "./controllers/SystemController.js";
 import { ZoneController } from './controllers/ZoneController.js';
 import { ProgramController } from './controllers/ProgramController.js';
 import { DisplayController } from './controllers/DisplayController.js';
-import RelayController from './hardware/relays.js'
-import LCDManager from './hardware/lcd.js'
+import RelayController from './harware/relays.js'
+import LCDManager from './harware/lcd.js'
 import { SystemLog } from "../shared/systemLog.js";
 import { LogController } from "./controllers/LogController.js";
 

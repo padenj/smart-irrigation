@@ -41,7 +41,8 @@ export class WeatherController {
                 latitude: parseFloat(settings.latitude),
                 longitude: parseFloat(settings.longitude),
                 timezone: settings.timezone,
-                temperatureUnit: settings.temperatureUnit as 'F' | 'C'
+                temperatureUnit: settings.temperatureUnit as 'F' | 'C',
+                measurementUnit: settings.measurementUnit as 'imperial' | 'metric',
             });
 
             if (!weatherData) {

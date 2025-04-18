@@ -16,11 +16,11 @@ export class SystemStatus {
     }) 
     activeZone: Zone | null = null
 
-    @Fields.date()
-    activeZoneStarted?: Date = undefined;
+    @Fields.string()
+    activeZoneStart: string | null = null;
 
-    @Fields.date()
-    activeZoneEnd?: Date = undefined;
+    @Fields.string()
+    activeZoneEnd: string | null = null;
 
     @Fields.json()
     weatherData: WeatherData = {
@@ -57,7 +57,6 @@ export class SystemStatus {
           precipitationProbability: 0,
           windAverage: 0,
           windGusts: 0,
-          windDirection: 0,
           uvIndexMax: 0,
           conditionText: "",
           conditionIcon: "",
@@ -77,7 +76,6 @@ export class SystemStatus {
           precipitationProbability: 0,
           windAverage: 0,
           windGusts: 0,
-          windDirection: 0,
           uvIndexMax: 0,
           conditionText: "",
           conditionIcon: "",

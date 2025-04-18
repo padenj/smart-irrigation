@@ -13,11 +13,24 @@ export interface WeatherForecastData {
     snowProbability: number;
     windAverage: number;
     windGusts: number;
-    windDirection: number;
     uvIndexMax: number;
     conditionText: string;
     conditionIcon: string;
     conditionCode: number;
+}
+
+export interface WeatherCurrentData {
+    temperature: number;
+    precipitation: number;
+    isDay: number;
+    relativeHumidity: number;
+    cloudCover: number;
+    conditionCode: number;
+    conditionText: string;
+    conditionIcon: string;
+    windSpeed: number;
+    windDirection: number;
+    windGusts: number;
 }
 
 export interface WeatherData {
@@ -27,19 +40,7 @@ export interface WeatherData {
     latitude: number;
     longitude: number;
     lastUpdated: string | null;
-    current: {
-        temperature: number;
-        precipitation: number;
-        isDay: number;
-        relativeHumidity: number;
-        cloudCover: number;
-        conditionCode: number;
-        conditionText: string;
-        conditionIcon: string;
-        windSpeed: number;
-        windDirection: number;
-        windGusts: number;
-    };
+    current: WeatherCurrentData;
     forecast: {
         today: WeatherForecastData;
         tomorrow: WeatherForecastData;

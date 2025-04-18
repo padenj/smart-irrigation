@@ -47,14 +47,14 @@ export function SystemLogs({ }: SystemLogsProps) {
     }
   };
 
-  const getLogClass = (type: 'INFO' | 'WARNING' | 'ERROR') => {
+  const getLogClass = (type: 'INFO' | 'WARNING' | 'ERROR', highlight: boolean) => {
     switch (type) {
       case 'INFO':
-        return 'bg-blue-50';
+      return highlight ? 'bg-blue-100' : 'bg-blue-50';
       case 'WARNING':
-        return 'bg-yellow-50';
+      return highlight ? 'bg-yellow-100' : 'bg-yellow-50';
       case 'ERROR':
-        return 'bg-red-50';
+      return highlight ? 'bg-red-100' : 'bg-red-50';
     }
   };
 
@@ -120,7 +120,7 @@ export function SystemLogs({ }: SystemLogsProps) {
             filteredLogs.map((log, index) => (
                 <div
                 key={index}
-                className={`p-4 ${getLogClass(log.level)} flex items-start space-x-3`}
+                className={`p-4 ${getLogClass(log.level, log.highlight)} flex items-start space-x-3`}
                 >
                 {getLogIcon(log.level)}
                 <div className="min-w-0 flex-1">

@@ -1,110 +1,116 @@
 import React from 'react';
-import { ZoneManager } from './components/ZoneManager';
-import { Dashboard } from './components/Dashboard';
-import { SystemLogs } from './components/SystemLogs';
+import { ZoneManager } from './pages/ZoneManager';
+import { Dashboard } from './pages/Dashboard';
+import { SystemLogs } from './pages/SystemLogs';
 import Header from './components/Header';
-import { ProgramManager } from './components/ProgramManager';
-import { Settings } from './components/Settings';
-import { StatusProvider } from './components/StatusContext';
-import { SettingsProvider } from './components/SettingsContext';
+import { ProgramManager } from './pages/ProgramManager';
+import { Settings } from './pages/Settings';
+import { StatusProvider } from './hooks/StatusContext';
+import { SettingsProvider } from './hooks/SettingsContext';
 import { VersionDisplay } from './components/VersionDisplay';
+import { InstallButton } from './components/InstallAppButton';
+import { BrowserRouter as Router, Route, Routes, NavLink } from 'react-router-dom';
 
 function App() {
-  const [activeTab, setActiveTab] = React.useState('dashboard');
-  
   return (
+    <Router>
     <div className="min-h-screen bg-gray-50">
-
       <SettingsProvider>
         <StatusProvider>
-      {/* Header */}
-      <Header />
+          {/* Header */}
+          <Header />
 
-      {/* Navigation */}
-      <nav className="bg-white border-b overflow-x-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8">
-        <button
-          onClick={() => setActiveTab('dashboard')}
-          className={`px-3 py-2 text-sm font-medium ${
-            activeTab === 'dashboard'
-          ? 'border-b-2 border-blue-500 text-blue-600'
-          : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Dashboard
-        </button>
-        <button
-          onClick={() => setActiveTab('zones')}
-          className={`px-3 py-2 text-sm font-medium ${
-            activeTab === 'zones'
-          ? 'border-b-2 border-blue-500 text-blue-600'
-          : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Zones
-        </button> 
-        <button
-          onClick={() => setActiveTab('programs')}
-          className={`px-3 py-2 text-sm font-medium ${
-            activeTab === 'programs'
-          ? 'border-b-2 border-blue-500 text-blue-600'
-          : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Programs
-        </button>
-        <button
-          onClick={() => setActiveTab('logs')}
-          className={`px-3 py-2 text-sm font-medium ${
-            activeTab === 'logs'
-          ? 'border-b-2 border-blue-500 text-blue-600'
-          : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          System Logs
-        </button>
-        <button
-          onClick={() => setActiveTab('settings')}
-          className={`px-3 py-2 text-sm font-medium ${
-            activeTab === 'settings'
-          ? 'border-b-2 border-blue-500 text-blue-600'
-          : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Settings
-        </button>
-          </div>
-        </div>
-      </nav>
+          {/* Navigation */}
+          <nav className="bg-white border-b overflow-x-auto">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex space-x-8">
+                <NavLink
+                  to="/"
+                  className={({ isActive }) =>
+                    `px-3 py-2 text-sm font-medium ${
+                      isActive
+                        ? 'border-b-2 border-blue-500 text-blue-600'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`
+                  }
+                >
+                  Dashboard
+                </NavLink>
+                <NavLink
+                  to="/zones"
+                  className={({ isActive }) =>
+                    `px-3 py-2 text-sm font-medium ${
+                      isActive
+                        ? 'border-b-2 border-blue-500 text-blue-600'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`
+                  }
+                >
+                  Zones
+                </NavLink>
+                <NavLink
+                  to="/programs"
+                  className={({ isActive }) =>
+                    `px-3 py-2 text-sm font-medium ${
+                      isActive
+                        ? 'border-b-2 border-blue-500 text-blue-600'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`
+                  }
+                >
+                  Programs
+                </NavLink>
+                <NavLink
+                  to="/logs"
+                  className={({ isActive }) =>
+                    `px-3 py-2 text-sm font-medium ${
+                      isActive
+                        ? 'border-b-2 border-blue-500 text-blue-600'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`
+                  }
+                >
+                  System Logs
+                </NavLink>
+                <NavLink
+                  to="/settings"
+                  className={({ isActive }) =>
+                    `px-3 py-2 text-sm font-medium ${
+                      isActive
+                        ? 'border-b-2 border-blue-500 text-blue-600'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`
+                  }
+                >
+                  Settings
+                </NavLink>
+              </div>
+            </div>
+          </nav>
 
-      {/* Main Content */}
+          {/* Main Content */}
+
+          <InstallButton />
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            {activeTab === 'dashboard' && (
-              <Dashboard />
-            )}
-            {activeTab === 'zones' && (
-              <ZoneManager />
-            )}
-            {activeTab === 'programs' && (
-              <ProgramManager />
-            )}
-            {activeTab === 'logs' && (
-              <SystemLogs />
-            )}
-            {activeTab === 'settings' && (
-              <Settings />
-            )}
+    
+              <Routes>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/zones" element={<ZoneManager />} />
+                <Route path="/programs" element={<ProgramManager />} />
+                <Route path="/logs" element={<SystemLogs />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="*" element={<Dashboard />} />
+              </Routes>
           </main>
 
-      {/* Footer */}
-      <footer className=" bottom-0 right-0 m-4">
-        <VersionDisplay />
-      </footer>
-
+          {/* Footer */}
+          <footer className="bottom-0 right-0 m-4">
+            <VersionDisplay />
+          </footer>
         </StatusProvider>
       </SettingsProvider>
     </div>
+    </Router>
   );
 }
 

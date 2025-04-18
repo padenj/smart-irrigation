@@ -9,7 +9,9 @@ const Header: React.FC = () => {
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center">
               <Droplets className="h-8 w-8 text-blue-600" />
-              <h1 className="ml-2 text-xl font-semibold text-gray-900">Smart Irrigation System</h1>
+                <h1 className="ml-2 text-lg sm:text-xl font-semibold text-gray-900 text-center sm:text-left">
+                Smart Irrigation System
+                </h1>
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2 text-sm text-gray-500">

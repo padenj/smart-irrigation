@@ -1,6 +1,6 @@
 import { DateTime } from 'luxon';
 import { BackendMethod, repo } from 'remult';
-import { Program } from '../../shared/programs';
+import { ConditionOperator, ConditionType, Program } from '../../shared/programs';
 import { SystemSettings } from '../../shared/systemSettings';
 import { DateTimeUtils } from '../utilities/DateTimeUtils';
 import { systemStatusRepo } from './SystemController';
@@ -120,7 +120,7 @@ export class ProgramController {
     * @param programId - The ID of the program to run.
     */
     @BackendMethod({ allowed: true, apiPrefix: 'programs' })
-    static async runProgram(programId: string) {
+    static async runProgram(programId: string, isManual?: boolean) {
         const programRepo = repo(Program);
         const systemStatus = await systemStatusRepo.findFirst();
         const settings = await repo(SystemSettings).findFirst();
@@ -134,8 +134,43 @@ export class ProgramController {
         }
 
         // Calculate the next scheduled run date for the program
-        ProgramController.updateProgramSchedule(programId, true);
-        LogController.writeLog(`Running program ${program.name}`);
+        if (!isManual) {
+            ProgramController.updateProgramSchedule(programId, true);
+
+            if (program.conditions && program.conditions.length > 0) {
+                for (const condition of program.conditions) {
+                    const { type, operator, value } = condition;
+                    let isConditionMet = false;
+
+                    switch (type) {
+                        case ConditionType.TEMPERATURE:
+                            const currentTemperature = systemStatus?.weatherData?.current?.temperature || 0;
+                            isConditionMet = evaluateCondition(operator, currentTemperature, value);
+
+                    console.log("Condition evaluation result:", isConditionMet, type, operator, value, currentTemperature);
+                            break;
+
+                        case ConditionType.MOISTURE:
+                            isConditionMet = true; // Placeholder for moisture condition
+                            break;
+                            
+                        default:
+                            console.log(`Unknown condition type: ${type}`);
+                            break;
+                    }
+                    if (!isConditionMet) {
+                        console.log(`Condition ${type} ${operator} ${value} not met, skipping ${program.name}`);
+                        LogController.writeLog(`Condition ${type} ${operator} ${value} not met, skipping ${program.name}`, "WARNING");
+                        return;
+                    }
+                }
+            }
+
+            LogController.writeLog(`Running program ${program.name}`);
+        } else {
+            LogController.writeLog(`Manual - Running program ${program.name}`, "INFO", true);
+        }
+        
         DisplayController.setActiveProgram(program.name);
         console.log(`Running program ${program.name}`);
 
@@ -165,6 +200,23 @@ export class ProgramController {
         // Clear the active program in the system status
         if (systemStatus) {
             await systemStatusRepo.update(systemStatus.id, { activeProgram: null });
+        }
+
+        function evaluateCondition(operator: ConditionOperator, referenceValue: number, thresholdValue: number) {
+            switch (operator) {
+                case "=":
+                    return referenceValue === thresholdValue;
+                case ">":
+                    return referenceValue > thresholdValue;
+                case ">=":
+                    return referenceValue >= thresholdValue;
+                case "<":
+                    return referenceValue < thresholdValue;
+                case "<=":
+                    return referenceValue <= thresholdValue;
+                default:
+                    return true;
+            }
         }
     }
 
@@ -199,7 +251,7 @@ export class ProgramController {
         if (programToRun) {
             console.log(`Running program ${programToRun.name}`);
             // Trigger the program run in the background
-            ProgramController.runProgram(programToRun.id);
+            ProgramController.runProgram(programToRun.id, false);
         }
     }
 

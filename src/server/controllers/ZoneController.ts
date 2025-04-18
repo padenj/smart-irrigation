@@ -2,8 +2,10 @@ import { BackendMethod, repo } from 'remult';
 import { ValidPorts, Zone } from '../../shared/zones';
 import { IRelayController } from '../types/hardware';
 import { DisplayController } from './DisplayController';
+import { DateTimeUtils } from '../utilities/DateTimeUtils'; // Adjust the path as needed
 import { systemStatusRepo } from './SystemController';
 import { LogController } from './LogController';
+import { SystemSettings } from '../../shared/systemSettings';
 
 
 export class ZoneController {
@@ -30,9 +32,13 @@ export class ZoneController {
     }
 
     @BackendMethod({ allowed: true, apiPrefix: 'zones' })
-    static async runZone(zoneId: string, duration: number) {
+    static async runZone(zoneId: string, duration: number, isManual: boolean = false) {
         const zoneRepo = repo(Zone);
-
+        const settings = await repo(SystemSettings).findFirst();
+        if (!settings) {
+            console.error('System settings not found');
+            return;
+        }
         const zoneDefinition = await zoneRepo.findId(zoneId);
         if (!zoneDefinition) {
             console.error(`Zone with ID ${zoneId} not found`);
@@ -46,8 +52,23 @@ export class ZoneController {
         }
 
         // Set the active zone in the system status
-        await systemStatusRepo.update(0, { activeZone: zoneDefinition });
-        LogController.writeLog(`Running zone ${zoneDefinition.name} for ${duration} seconds`);
+        const now = new Date();
+        const systemStatus = await systemStatusRepo.findFirst();
+        if (!systemStatus) {
+            console.error('System status not found');
+            return;
+        }
+        await systemStatusRepo.update(0, { 
+            activeZone: zoneDefinition, 
+            activeZoneStart: DateTimeUtils.toISODateTime(now, settings.timezone), 
+            activeZoneEnd: DateTimeUtils.toISODateTime(new Date(now.getTime() + duration * 1000), settings.timezone) 
+        });
+
+        if (isManual) {
+        LogController.writeLog(`Manual - Running zone ${zoneDefinition.name} for ${duration} seconds`, "INFO", true);
+        } else {
+            LogController.writeLog(`Running zone ${zoneDefinition.name} for ${duration} seconds`);
+        }
         DisplayController.setActiveZone(zoneDefinition.name, duration);
         // Enable the GPIO pin for the zone
         ZoneController.relays.turnOn(zoneDefinition.gpioPort);
@@ -91,6 +112,7 @@ export class ZoneController {
         const zoneDefinition = await zoneRepo.findId(zoneId || activeZone || '');
         if (!zoneDefinition) {
             console.error(`Zone with ID ${zoneId} not found`);
+            LogController.writeLog(`Zone with ID ${zoneId} not found`, "ERROR");
             return "Zone not found.";
         }
 
@@ -104,7 +126,7 @@ export class ZoneController {
         }
 
         console.log(`Zone ${zoneId} stopped successfully.`);
-        LogController.writeLog(`Zone ${zoneDefinition.name} stopped successfully.`);
+        // LogController.writeLog(`Zone ${zoneDefinition.name} stopped successfully.`);
         return `Zone ${zoneId} stopped successfully.`;
     }
 

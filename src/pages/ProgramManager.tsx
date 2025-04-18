@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
 import { Clock, Save, Undo, Edit2, Trash2, Plus, Waves, ArrowBigLeft } from 'lucide-react';
 import { remult } from 'remult';
-import { Program } from '../shared/programs';
+import { ConditionOperator, ConditionType, Program } from '../shared/programs';
 import { Zone } from '../shared/zones';
-import { useStatusContext } from './StatusContext';
-import { useSettingsContext } from './SettingsContext';
+import { useStatusContext } from '../hooks/StatusContext';
+import { useSettingsContext } from '../hooks/SettingsContext';
 import { DateTimeUtils } from '../server/utilities/DateTimeUtils';
 import { DateTime } from 'luxon';
 import { ProgramController } from '../server/controllers/ProgramController';
@@ -70,7 +70,7 @@ export function ProgramManager({ }: ProgramManagerProps) {
 
   const handleRunProgram = async (programId: string) => {
     try {
-      await ProgramController.runProgram(programId);
+      await ProgramController.runProgram(programId, true);
     } catch (e) {
       console.error(e);
     }
@@ -212,6 +212,84 @@ export function ProgramManager({ }: ProgramManagerProps) {
     </div>
   );
 
+  const renderProgramConditions = (program: Program) => (
+    <div>
+    <h4 className="font-medium text-gray-700">Conditions</h4>
+    {editingProgram === program.id ? (
+      <div className="space-y-4">
+        {programDraft?.conditions?.map((condition, index) => (
+          <div key={index} className="flex items-center space-x-4">
+            <select
+              value={condition.type}
+              onChange={(e) => {
+                const updatedConditions = [...programDraft.conditions];
+                updatedConditions[index].type = e.target.value as ConditionType;
+                setProgramDraft({ ...programDraft, conditions: updatedConditions });
+              }}
+              className="border rounded px-2 py-1"
+            >
+              <option value="temperature">Temperature</option>
+              <option value="moisture">Moisture</option>
+            </select>
+            <select
+              value={condition.operator}
+              onChange={(e) => {
+                const updatedConditions = [...programDraft.conditions];
+                updatedConditions[index].operator = e.target.value as ConditionOperator;
+                setProgramDraft({ ...programDraft, conditions: updatedConditions });
+              }}
+              className="border rounded px-2 py-1"
+            >
+              {['=', '!=', '<', '>', '<=', ">="].map((key) => (
+                <option key={key} value={key}>
+                  {key}
+                </option>
+              ))}
+            </select>
+            <input
+              type="number"
+              value={condition.value}
+              onChange={(e) => {
+                const updatedConditions = [...programDraft.conditions];
+                updatedConditions[index].value = parseFloat(e.target.value) || 0;
+                setProgramDraft({ ...programDraft, conditions: updatedConditions });
+              }}
+              className="border rounded px-2 py-1"
+            />
+            <button
+              onClick={() => {
+                const updatedConditions = programDraft.conditions.filter((_, i) => i !== index);
+                setProgramDraft({ ...programDraft, conditions: updatedConditions });
+              }}
+              className="text-red-400 hover:text-red-600"
+              disabled={programDraft.conditions.length === 0}
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        ))}
+        <button
+          onClick={() => {
+            const newCondition = { type: ConditionType.TEMPERATURE, operator: '==' as ConditionOperator, value: 0 };
+            setProgramDraft({ ...programDraft!, conditions: [...(programDraft?.conditions || []), newCondition] });
+          }}
+          className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+        >
+          Add Condition
+        </button>
+      </div>
+    ) : (
+      <ul className="mt-2 space-y-2">
+        {program.conditions?.map((condition, index) => (
+          <li key={index} className="text-sm text-gray-700">
+            {condition.type} {condition.operator} {condition.value}
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -327,6 +405,7 @@ export function ProgramManager({ }: ProgramManagerProps) {
             <div className="grid grid-cols-2 gap-6">
               {renderProgramZones(program)}
               {renderProgramSchedule(program)}
+              {renderProgramConditions(program)}
             </div>
           </div>
         ))}

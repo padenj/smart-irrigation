@@ -20,6 +20,9 @@ export class SystemLog {
     })
     level!: 'INFO' | 'WARNING' | 'ERROR'; // e.g., "INFO", "WARNING", "ERROR"
 
+    @Fields.boolean()
+    highlight = false; // For highlighting in the UI
+    
     @Fields.date()
     timestamp = new Date();
 }

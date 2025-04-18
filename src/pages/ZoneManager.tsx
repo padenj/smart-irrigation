@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Droplets, Save, Undo, Edit2, Trash2, Plus, Waves } from 'lucide-react';
 import { ValidPorts, Zone } from '../shared/zones';
 import { remult } from 'remult';
-import { useStatusContext } from './StatusContext';
+import { useStatusContext } from '../hooks/StatusContext';
 import { ZoneController } from '../server/controllers/ZoneController';
 
 interface ZoneManagerProps {

@@ -1,5 +1,12 @@
 import { Entity, Fields } from "remult";
 
+export interface WeatherServiceSettings {
+    apiKey: string;
+    location: string;
+    updateInterval: number;
+    data?: unknown;
+}
+
 @Entity("settings", {
     allowApiCrud: true
 })
@@ -34,13 +41,7 @@ export class SystemSettings {
     })
     measurementUnit = "imperial"; // imperial or metric
 
-    @Fields.string<SystemSettings>({
-        validate: (setting) => {
-            if (setting.weatherService !== "openmateo" && setting.weatherService !== "weatherapi") {
-                console.error("weatherService must be either 'openmateo' or 'weatherapi'");
-            }
-        }
-    })
+    @Fields.string()
     weatherService = "weatherapi"; // openmateo or weatherapi
 
     @Fields.string()
@@ -51,6 +52,23 @@ export class SystemSettings {
 
     @Fields.number()
     weatherUpdateInterval = 15; // Interval in minutes for weather updates
+
+    @Fields.json()
+    weatherServiceSettings: {
+        'weatherapi'?: WeatherServiceSettings,
+        'openweathermap'?: WeatherServiceSettings
+    } = {
+        weatherapi: {
+            apiKey: "",
+            location: "",
+            updateInterval: 15
+        },
+        openweathermap: {
+            apiKey: "",
+            location: "",
+            updateInterval: 15
+        }
+    };
     
     @Fields.number()
     moistureSensorAddress = 0x48; // I2C address for the moisture sensor

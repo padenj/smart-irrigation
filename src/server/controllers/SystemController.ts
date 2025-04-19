@@ -51,6 +51,7 @@ export class SystemController {
 
     @BackendMethod({ allowed: true, apiPrefix: 'system' })
     static async update() {
+        console.log('Updating weather and statistics');
         WeatherController.RetrieveWeather(false);
         return "Update Completed Successfully";
     }

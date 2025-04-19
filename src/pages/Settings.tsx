@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Bell, Cpu, Database, Globe, Shield, Sliders, Wifi } from 'lucide-react';
 import { remult } from 'remult';
 import { SystemSettings } from '../shared/systemSettings';
-import { InstallButton } from '../components/InstallAppButton';
 
 interface SettingsProps {
   
@@ -31,9 +30,26 @@ export function Settings({}: SettingsProps) {
 
     const parsedValue = parseValue(key, value);
 
+    let updatedSettings;
+    if (key.includes('.')) {
+      const keys = key.split('.');
+      updatedSettings = { ...settings };
+      let currentLevel = updatedSettings;
+
+      for (let i = 0; i < keys.length - 1; i++) {
+      const currentKey = keys[i];
+      (currentLevel as any)[currentKey] = (currentLevel as any)[currentKey] || {};
+      currentLevel = (currentLevel as Record<string, any>)[currentKey];
+      }
+
+      (currentLevel as any)[keys[keys.length - 1]] = value;
+    } else {
+      updatedSettings = { ...settings, [key]: parsedValue };
+    }
+
     settingsRepo
-      .save({ ...settings, [key]: parsedValue })
-      .then((updatedSettings) => setSettings(updatedSettings))
+      .save(updatedSettings)
+      .then((savedSettings) => setSettings(savedSettings))
       .catch((error) => console.error('Error saving settings:', error));
   };
 
@@ -45,12 +61,13 @@ export function Settings({}: SettingsProps) {
       'weatherUpdateInterval',
       'moistureSensorCalibration',
       'moistureSensorReadingInterval',
+      'updateInterval',
     ];
     const trimKeys = [
       'weatherLocation',
       'weatherApiKey',
-      'latitude',
-      'longitude',
+      'location',
+      'apiKey',
       'timeZone',
       'lcdAddress',
     ];
@@ -159,57 +176,18 @@ const GeneralSettings = ({ settings, onChange }: { settings: SystemSettings; onC
 );
 
 const PWASettings = () => {
-  const [isInstalled, setIsInstalled] = useState(false);
-  //const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e: any) => {
-      e.preventDefault();
-      console.log('beforeinstallprompt event fired');
-      //setDeferredPrompt(e);
-    };
-
-    const handleAppInstalled = () => {
-      console.log('App installed event fired');
-      setIsInstalled(true);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
-    };
-  }, []);
-
-  // const handleInstallClick = () => {
-  //   if (deferredPrompt) {
-  //     deferredPrompt.prompt();
-  //     deferredPrompt.userChoice.then((choiceResult: any) => {
-  //       if (choiceResult.outcome === 'accepted') {
-  //         console.log('User accepted the install prompt');
-  //       } else {
-  //         console.log('User dismissed the install prompt');
-  //       }
-  //       setDeferredPrompt(null);
-  //     });
-  //   }
-  // };
 
   return (
     <div className="space-y-6">
       <h2 className="text-lg font-medium text-gray-900">PWA Settings</h2>
       <div className="space-y-4">
-        {isInstalled ? (
-          <p className="text-green-600">App is installed on your device</p>
-        ) : (
+     
           <div className="install-banner bg-yellow-300 text-black p-2 w-full flex justify-between items-center">
                 <p className="mr-4 text-sm">
                     To install the app, open the browser menu and select "Add to Home Screen".
                 </p>
             </div>
-        )}
+    
       </div>
     </div>
   );
@@ -258,34 +236,55 @@ const WeatherSettings = ({ settings, onChange }: { settings: SystemSettings; onC
         value={settings.weatherService}
         options={[
           { value: 'weatherapi', label: 'WeatherAPI' },
-          { value: 'openmateo', label: 'OpenMateo (Forecast Only)' },
+          { value: 'openweathermap', label: 'OpenWeatherMap' },
         ]}
         onChange={(value) => onChange('weatherService', value)}
       />
-      <SettingInput
-        label="API Key"
-        type="password"
-        value={settings.weatherApiKey}
-        onChange={(value) => onChange('weatherApiKey', value)}
-      />
-      <SettingInput
-        label="Latitude"
-        value={settings.latitude}
-        onChange={(value) => onChange('latitude', value)}
-        placeholder="Enter latitude"
-      />
-      <SettingInput
-        label="Longitude"
-        value={settings.longitude}
-        onChange={(value) => onChange('longitude', value)}
-        placeholder="Enter longitude"
-      />
-      <SettingInput
-        label="Update Interval (minutes)"
-        type="number"
-        value={settings.weatherUpdateInterval}
-        onChange={(value) => onChange('weatherUpdateInterval', value)}
-      />
+      
+        <div className="space-y-4">
+          <h3 className="text-md font-medium text-gray-800">WeatherAPI Settings</h3>
+          <SettingInput
+            label="API Key"
+            type="password"
+            value={settings.weatherServiceSettings?.weatherapi?.apiKey || ''}
+            onChange={(value) => onChange('weatherServiceSettings.weatherApi.apiKey', value)}
+          />
+          <SettingInput
+            label="Location"
+            value={settings.weatherServiceSettings?.weatherapi?.location || ''}
+            onChange={(value) => onChange('weatherServiceSettings.weatherApi.location', value)}
+            placeholder="Enter location (lat,lon), zip code or city, state"
+          />
+          <SettingInput
+            label="Update Interval (minutes)"
+            type="number"
+            value={settings.weatherServiceSettings?.weatherapi?.updateInterval || ''}
+            onChange={(value) => onChange('weatherServiceSettings.weatherApi.updateInterval', value)}
+          />
+        </div>
+        
+        <div className="space-y-4">
+          <h3 className="text-md font-medium text-gray-800">OpenWeatherMap Settings</h3>
+          <SettingInput
+            label="API Key"
+            type="password"
+            value={settings.weatherServiceSettings?.openweathermap?.apiKey || ''}
+            onChange={(value) => onChange('weatherServiceSettings.openWeatherMap.apiKey', value)}
+          />
+          <SettingInput
+            label="Location"
+            value={settings.weatherServiceSettings?.openweathermap?.location || ''}
+            onChange={(value) => onChange('weatherServiceSettings.openWeatherMap.location', value)}
+            placeholder="Enter location (lat,lon) or zip code"
+          />
+          
+          <SettingInput
+            label="Update Interval (minutes)"
+            type="number"
+            value={settings.weatherServiceSettings?.openweathermap?.updateInterval || ''}
+            onChange={(value) => onChange('weatherServiceSettings.openWeatherMap.updateInterval', value)}
+          />
+        </div>
     </div>
   </div>
 );

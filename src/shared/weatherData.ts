@@ -7,9 +7,11 @@ export interface WeatherForecastData {
     temperatureHigh: number;
     temperatureLow: number;
     averageHumidity: number;
-    totalSnowfall: number;
+    totalRain: number;
+    totalSnow: number;
     totalPrecipitation: number;
     precipitationProbability: number;
+    rainProbability: number;
     snowProbability: number;
     windAverage: number;
     windGusts: number;
@@ -17,11 +19,14 @@ export interface WeatherForecastData {
     conditionText: string;
     conditionIcon: string;
     conditionCode: number;
+    asOf: string | null;
 }
 
 export interface WeatherCurrentData {
     temperature: number;
     precipitation: number;
+    rain: number;
+    snow: number;
     isDay: number;
     relativeHumidity: number;
     cloudCover: number;
@@ -31,9 +36,11 @@ export interface WeatherCurrentData {
     windSpeed: number;
     windDirection: number;
     windGusts: number;
+    asOf: string | null;
 }
 
 export interface WeatherData {
+    service: string;
     temperatureUnit: 'F' | 'C';
     measurementUnit: 'imperial' | 'metric';
     timezone: string;

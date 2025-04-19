@@ -33,7 +33,7 @@ const WeatherCard: React.FC<WeatherCardProps> = ({  }) => {
                 <strong>High:</strong> {forecast.temperatureHigh?.toFixed(1)}°{systemStatus.weatherData.temperatureUnit}, <strong>Low:</strong> {forecast.temperatureLow?.toFixed(1)}°{systemStatus?.weatherData?.temperatureUnit}
                 </p>
                 <p className="text-sm text-gray-600">
-                <strong>Precip:</strong> {forecast.totalPrecipitation?.toFixed(1)} {systemStatus.weatherData.measurementUnit === 'imperial' ? 'in' : 'mm'}, <strong>Snow:</strong> {forecast.totalSnowfall?.toFixed(1)} {systemStatus.weatherData.measurementUnit === 'imperial' ? 'in' : 'mm'}
+                <strong>Precip:</strong> {forecast.totalPrecipitation?.toFixed(1)} {systemStatus.weatherData.measurementUnit === 'imperial' ? 'in' : 'mm'}, <strong>Snow:</strong> {forecast.totalSnow?.toFixed(1)} {systemStatus.weatherData.measurementUnit === 'imperial' ? 'in' : 'mm'}
                 </p>
                 <p className="text-sm text-gray-600">
                 <strong>Precip Probability:</strong> {forecast.precipitationProbability}%
@@ -49,6 +49,9 @@ const WeatherCard: React.FC<WeatherCardProps> = ({  }) => {
                 </p>
                 <p className="text-sm text-gray-600">
                 <strong>UV Index:</strong> {forecast.uvIndexMax}
+                </p>
+                <p className="text-xs text-gray-600">
+                    {forecast.asOf ? `${forecast.asOf}` : ''}
                 </p>
             </div>
         );
@@ -76,7 +79,11 @@ const WeatherCard: React.FC<WeatherCardProps> = ({  }) => {
                     <strong>Wind:</strong> {currentWeather.windSpeed?.toFixed(1)} {systemStatus.weatherData.measurementUnit === 'imperial' ? 'mph' : 'kph'}, <strong>Direction:</strong> {currentWeather.windDirection}°
                 </p>
                 <p className="text-sm text-gray-600">
-                    <strong>Precipitation:</strong> {currentWeather.precipitation?.toFixed(1)} {systemStatus.weatherData.measurementUnit === 'imperial' ? 'in' : 'mm'}
+                    <strong>Rain:</strong> {currentWeather.rain?.toFixed(1)} {systemStatus.weatherData.measurementUnit === 'imperial' ? 'in' : 'mm'}
+                    , <strong>Snow:</strong> {currentWeather.snow?.toFixed(1)} {systemStatus.weatherData.measurementUnit === 'imperial' ? 'in' : 'mm'}
+                </p>
+                <p className="text-xs text-gray-600">
+                    {currentWeather.asOf ? `As of: ${currentWeather.asOf}` : ''}
                 </p>
             </div>
         )
@@ -98,6 +105,9 @@ const WeatherCard: React.FC<WeatherCardProps> = ({  }) => {
             <div>
                 <p className="text-xs text-gray-600">
                         Last Update: {DateTimeUtils.isoToDateTimeShortStr(systemStatus?.weatherData?.lastUpdated, systemStatus?.weatherData?.timezone)}
+                </p>
+                <p className="text-xs text-gray-600">
+                    {systemStatus?.weatherData?.service}
                 </p>
             </div>
         </div>

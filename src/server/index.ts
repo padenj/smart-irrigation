@@ -10,7 +10,7 @@ import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
 // Retrieve UPDATE_FREQUENCY_MIN from environment variables or use default value
-const UPDATE_FREQUENCY_MINUTES = parseInt(process.env.UPDATE_FREQUENCY_MIN || '5', 10);
+const UPDATE_FREQUENCY_MINUTES = parseInt(process.env.UPDATE_FREQUENCY_MINUTES || '5', 10);
 
 const port = parseInt(process.env.PORT || '3000', 10); // Ensure this matches the app.listen port
 

@@ -1,7 +1,7 @@
 import { remult } from 'remult';
 import { SystemSettings } from '../../shared/systemSettings';
 import { SystemStatus } from '../../shared/systemStatus';
-import { fetchWeather as fetchOpenmateoWeather } from '../integrations/openmeteo';
+import { fetchWeather as fetchOpenWeatherMapApi } from '../integrations/openWeatherMap';
 import { fetchWeather as fetchWeatherApi } from '../integrations/weatherApi';
 import { DateTimeUtils } from '../utilities/DateTimeUtils';
 import { DisplayController } from './DisplayController';
@@ -19,11 +19,11 @@ export class WeatherController {
 
 
         const systemStatus = await statusRepo.findFirst() || new SystemStatus();
-        if (!forceUpdate && systemStatus.weatherData?.lastUpdated) {
+        if (!forceUpdate && systemStatus.weatherData?.lastUpdated && systemStatus.weatherData.service === settings.weatherService) {
             const lastUpdated = DateTimeUtils.fromISODateTime(systemStatus.weatherData.lastUpdated, settings.timezone);
             if (!lastUpdated) {
-                console.log('Last updated time is invalid');
-                return;
+            console.log('Last updated time is invalid');
+            return;
             }
             const now = new Date();
             const minutesSinceLastUpdate = (now.getTime() - lastUpdated.getTime()) / (1000 * 60);
@@ -36,17 +36,11 @@ export class WeatherController {
 
         let weatherData: WeatherData | null = null;
 
-        if (settings.weatherService === 'openmateo') {
-            const weatherData = await fetchOpenmateoWeather({ 
-                latitude: parseFloat(settings.latitude),
-                longitude: parseFloat(settings.longitude),
-                timezone: settings.timezone,
-                temperatureUnit: settings.temperatureUnit as 'F' | 'C',
-                measurementUnit: settings.measurementUnit as 'imperial' | 'metric',
-            });
+        if (settings.weatherService === 'openweathermap') {
+            weatherData = await fetchOpenWeatherMapApi();
 
             if (!weatherData) {
-                console.log('Failed to fetch weather data');
+                console.log('Failed to fetch OpenWeatherMap data');
                 return;
             }
 
@@ -54,7 +48,7 @@ export class WeatherController {
         } else if (settings.weatherService === "weatherapi") {
             weatherData = await fetchWeatherApi();
             if (!weatherData) {
-                console.log('Failed to fetch weather data');
+                console.log('Failed to fetch WeatherAPI data');
                 return;
             }
         } else {

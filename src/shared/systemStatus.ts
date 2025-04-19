@@ -24,6 +24,7 @@ export class SystemStatus {
 
     @Fields.json()
     weatherData: WeatherData = {
+      service: "weatherapi",
       temperatureUnit: "F",
       measurementUnit: "imperial",
       latitude: 0,
@@ -32,6 +33,8 @@ export class SystemStatus {
       current: {
         temperature: 0,
         precipitation: 0,
+        rain: 0,
+        snow: 0,
         isDay: 0,
         relativeHumidity: 0,
         cloudCover: 0,
@@ -40,7 +43,8 @@ export class SystemStatus {
         conditionIcon: "",
         windSpeed: 0,
         windDirection: 0,
-        windGusts: 0
+        windGusts: 0,
+        asOf: null
       },
       forecast: {
         today: {
@@ -52,15 +56,18 @@ export class SystemStatus {
           snowProbability: 0,
           temperatureHigh: 0,
           temperatureLow: 0,
-          totalSnowfall: 0,
+          totalSnow: 0,
+          totalRain: 0,
           totalPrecipitation: 0,
           precipitationProbability: 0,
+          rainProbability: 0,
           windAverage: 0,
           windGusts: 0,
           uvIndexMax: 0,
           conditionText: "",
           conditionIcon: "",
-          conditionCode: 0
+          conditionCode: 0,
+          asOf: null
         },
         tomorrow: {
           sunrise: null,
@@ -71,15 +78,18 @@ export class SystemStatus {
           snowProbability: 0,
           temperatureHigh: 0,
           temperatureLow: 0,
-          totalSnowfall: 0,
+          totalSnow: 0,
           totalPrecipitation: 0,
+          rainProbability: 0,
+          totalRain: 0,
           precipitationProbability: 0,
           windAverage: 0,
           windGusts: 0,
           uvIndexMax: 0,
           conditionText: "",
           conditionIcon: "",
-          conditionCode: 0
+          conditionCode: 0,
+          asOf: null
         },
       },
       lastUpdated: null

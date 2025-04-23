@@ -1,70 +1,69 @@
 import LCD from 'raspberrypi-liquid-crystal';
 import dotenv from 'dotenv';
 import { ILCDManager } from '../types/hardware';
+import { LogController } from '../controllers/LogController';
+import { remult } from 'remult';
+import { SystemSettings } from '../../shared/systemSettings';
 dotenv.config({ path: '.env.local' });
 
 const LCD_ROWS = 4;
 const LCD_COLS = 20;
 const LCD_PAGE_CYCLE_TIME = 20000; // 20 seconds
-
-class LCDWrapper {
-    private lcd: LCD | null = null;
-
-    constructor() {
-        if (process.env.MOCK_HARDWARE === 'true') {
-            this.lcd = {
-                clearSync: () => {},
-                setCursor: (_col: number, _row: number) => {},
-                printSync: (_text: string) => {},
-                printLineSync: (_line: number, _text: string) => {},
-            } as unknown as LCD;
-            console.log('Mock LCD initialized');
-        } else {
-            this.lcd = new LCD(1, 0x27, LCD_COLS, LCD_ROWS);
-            this.lcd.beginSync();
-            this.lcd.clearSync();
-            this.lcd.printLineSync(0, 'LCD Initialized');
-            console.log('LCD initialized');
-        }
-    }
-
-    getInstance(): LCD {
-        if (!this.lcd) {
-            throw new Error('LCD instance is not initialized.');
-        }
-        return this.lcd;
-    }
-}
-
-const lcdWrapper = new LCDWrapper();
-const lcdInstance = lcdWrapper.getInstance();
+const MOCK_LCD = {
+    clearSync: () => {},
+    setCursor: (_col: number, _row: number) => {},
+    printSync: (_text: string) => {},
+    printLineSync: (_line: number, _text: string) => {},
+} as unknown as LCD;
 
 class LCDManager implements ILCDManager {
     private static instance: LCDManager;
-    lcd: LCD;
+    private lcd: LCD;
     private pages: string[][] = [];
     private currentPageIndex: number = -1;
+    private settingsRepo = remult.repo(SystemSettings);
+    private isMocked: boolean;
 
     private constructor() {
-        try {
-            this.lcd = lcdInstance;
-            this.lcd.clearSync();
-            this.getPage(0); // Ensure the first page is initialized
-            this.startCycling();
-            this.setPage(0);
-        } catch (error) {
-            console.error('Error initializing LCD Hardware, using mock instance', error);
-            this.lcd = {
-                clearSync: () => {},
-                setCursor: (_col: number, _row: number) => {},
-                printSync: (_text: string) => {},
-            } as unknown as LCD;
-        }
+        this.isMocked = process.env.MOCK_HARDWARE === 'true';
+        this.lcd = MOCK_LCD;
     }
 
-    static getInstance(): LCDManager {
+    private async initialize() {
+        if (this.isMocked) {
+            this.lcd = MOCK_LCD;
+            console.log('Mock LCD initialized');
+        } else {
+            try {
+                const settings = await this.settingsRepo.findFirst();
+                const address = settings ? settings.lcdAddress : 0x27; // Default address // Retrieve address from Settings
+            
+                this.lcd = new LCD(1, address, LCD_COLS, LCD_ROWS);
+                this.lcd.beginSync();
+                this.lcd.clearSync();
+                this.lcd.printLineSync(0, 'LCD Initialized');
+                console.log('LCD initialized');
+            } catch (error) {
+                if (error instanceof Error) {
+                    LogController.writeLog('Error initializing LCD: ' + error.message);
+                } else {
+                    LogController.writeLog('Error initializing LCD: Unknown error');
+                }
+                this.lcd = MOCK_LCD;
+                console.log('Falling back to Mock LCD');
+            }
+        }
+
+        this.getPage(0); // Ensure the first page is initialized
+        this.startCycling();
+        this.setPage(0);
+        
+    }
+
+    public static async getInstance(): Promise<LCDManager> {
         if (!LCDManager.instance) {
             LCDManager.instance = new LCDManager();
+            await LCDManager.instance.initialize();
         }
         return LCDManager.instance;
     }
@@ -163,4 +162,4 @@ class LCDManager implements ILCDManager {
     }
 }
 
-export default LCDManager.getInstance();
+export default await LCDManager.getInstance();

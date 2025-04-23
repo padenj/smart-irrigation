@@ -33,12 +33,16 @@ export class SensorController {
         }
 
         // Remove sensorData for sensors that no longer exist in systemSettings.sensors
-        const validSensorNames = new Set(systemSettings.sensors.map(sensor => sensor.name));
+        const validSensorNames = new Set(systemSettings.sensors?.map(sensor => sensor.name));
         for (const sensorName of Object.keys(systemStatus.sensorData)) {
             if (!validSensorNames.has(sensorName)) {
                 delete systemStatus.sensorData[sensorName];
             }
         }
+
+        if (!systemSettings.sensors) {
+            return;
+        }   
 
         for (const sensor of systemSettings.sensors) {
             const sensorData = systemStatus.sensorData[sensor.name] || {

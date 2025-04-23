@@ -1,7 +1,6 @@
 import LCD from 'raspberrypi-liquid-crystal';
 import dotenv from 'dotenv';
 import { ILCDManager } from '../types/hardware';
-import { remult } from 'remult';
 import { SystemSettings } from '../../shared/systemSettings';
 dotenv.config({ path: '.env.local' });
 
@@ -20,7 +19,6 @@ class LCDManager implements ILCDManager {
     private lcd: LCD;
     private pages: string[][] = [];
     private currentPageIndex: number = -1;
-    private settingsRepo = remult.repo(SystemSettings);
     private isMocked: boolean;
 
     private constructor() {
@@ -28,13 +26,12 @@ class LCDManager implements ILCDManager {
         this.lcd = MOCK_LCD;
     }
 
-    private async initialize() {
+    public async initialize(settings?: SystemSettings): Promise<void> {
         if (this.isMocked) {
             this.lcd = MOCK_LCD;
             console.log('Mock LCD initialized');
         } else {
             try {
-                const settings = await this.settingsRepo.findFirst();
                 const address = settings ? settings.lcdAddress : 0x27; // Default address // Retrieve address from Settings
             
                 this.lcd = new LCD(1, address, LCD_COLS, LCD_ROWS);

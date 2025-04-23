@@ -12,7 +12,6 @@ class ADS1115Wrapper implements IAtoDController {
     private ads1115: any = null;
     private isMocked: boolean;
     private calibrationValue: number = 0;
-    private settingsRepo = remult.repo(SystemSettings);
 
     private constructor() {
         this.isMocked = process.env.MOCK_HARDWARE === 'true';
@@ -21,12 +20,11 @@ class ADS1115Wrapper implements IAtoDController {
     public static async getInstance(): Promise<ADS1115Wrapper> {
         if (!ADS1115Wrapper.instance) {
             ADS1115Wrapper.instance = new ADS1115Wrapper();
-            await ADS1115Wrapper.instance.initialize();
         }
         return ADS1115Wrapper.instance;
     }
 
-    private async initialize() {
+    public async initialize(settings: SystemSettings) {
         if (this.isMocked) {
             this.ads1115 = {
                 measure: async (channel: string) => {
@@ -37,7 +35,6 @@ class ADS1115Wrapper implements IAtoDController {
         } else {
             const busNumber = 1; // Default I2C bus number
             this.bus = await openPromisified(busNumber);
-            const settings = await this.settingsRepo.findFirst();
             const address = settings ? settings.analogDigitalAddress : 0x48; // Default address // Retrieve address from Settings
             this.ads1115 = await ADS1115(this.bus, address);
         }

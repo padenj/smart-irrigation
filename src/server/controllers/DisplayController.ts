@@ -1,9 +1,22 @@
+import { SystemSettings } from '../../shared/systemSettings';
 import { WeatherData } from '../../shared/weatherData';
 import { ILCDManager } from '../types/hardware';
 import { DateTimeUtils } from '../utilities/DateTimeUtils';
 
 
 export class DisplayController {
+    private static initialized = false;
+    static lcdManager: ILCDManager;
+
+    public static async initialize(settings: SystemSettings) {
+        if (this.initialized || !this.lcdManager) {
+            return;
+        }
+
+        await this.lcdManager.initialize(settings);
+        this.initialized = true;
+    }
+    
     static setWeatherData(weatherData: WeatherData) {
         DisplayController.writeLine(1, 0, `Now: ${Math.round(weatherData.current.temperature)}${weatherData.temperatureUnit} ${weatherData.current.conditionText}`);
         DisplayController.writeLine(1, 1, `High: ${Math.round(weatherData.forecast.today.temperatureHigh)}${weatherData.temperatureUnit} Low: ${Math.round(weatherData.forecast.today.temperatureLow)}${weatherData.temperatureUnit}`);
@@ -19,7 +32,6 @@ export class DisplayController {
         DisplayController.writeLine(1, 3, `Prec: ${weatherData.current.precipitation}" Wind: ${Math.round(weatherData.current.windSpeed)}${weatherData.measurementUnit === 'metric' ? 'kph' : 'mph'}`);
     }
 
-    static lcdManager: ILCDManager;
 
     static setTime(timezone: string) {
         DisplayController.writeLine(0, 0, DateTimeUtils.toDateTimeShortStr(new Date(), timezone));

@@ -8,7 +8,16 @@ import { DisplayController } from './DisplayController';
 
 export class SensorController {
     static atodController: IAtoDController;
-    
+    static initialized = false;
+
+    static async initializeSensors(systemSettings: SystemSettings) {
+        if (this.initialized || !this.atodController) {
+            return;
+        }
+        await this.atodController.initialize(systemSettings);
+        this.initialized = true;
+    }
+
     @BackendMethod({ allowed: true, apiPrefix: 'sensors' })
     static async ReadSensorData(): Promise<void> {
         const systemSettingsRepo = remult.repo(SystemSettings);

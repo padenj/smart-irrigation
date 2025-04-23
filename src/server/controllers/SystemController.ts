@@ -43,6 +43,12 @@ export class SystemController {
     @BackendMethod({ allowed: true, apiPrefix: 'system' })
     static async init() {
         const systemSettings = await repo(SystemSettings).findFirst();
+        if (!systemSettings) {
+            console.log('System settings not found, cannot initialize system');
+            return "System settings not found";
+        }
+        SensorController.initializeSensors(systemSettings);
+        DisplayController.initialize(systemSettings);
         WeatherController.RetrieveWeather(true);
         DisplayController.setTime(systemSettings?.timezone|| 'UTC');
         ProgramController.stopActiveProgram();

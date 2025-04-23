@@ -11,6 +11,8 @@ import RelayController from './hardware/relays.js'
 import LCDManager from './hardware/lcd.js'
 import { SystemLog } from "../shared/systemLog.js";
 import { LogController } from "./controllers/LogController.js";
+import { SensorController } from "./controllers/SensorController.js";
+import ADS1115Wrapper from "./hardware/sensors.js";
 
 export const api = remultExpress({
     entities: [Zone, SystemStatus, Program, SystemSettings, SystemLog],
@@ -31,4 +33,5 @@ export const api = remultExpress({
 
 ZoneController.relays = RelayController;
 DisplayController.lcdManager = LCDManager;
+SensorController.atodController = ADS1115Wrapper;
 console.log('Server Initialized');

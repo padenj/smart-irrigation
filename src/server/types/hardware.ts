@@ -10,6 +10,7 @@ export interface ILCDManager {
     clearLine(pageIndex: number, lineIndex: number): void;
 }
 
-export interface ISensorController {
-
+export interface IAtoDController {
+    readSensorValue(sensorIndex: number): Promise<number>;
+    dispose(): void;
 }

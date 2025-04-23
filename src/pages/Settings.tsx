@@ -8,8 +8,9 @@ interface SettingsProps {
 }
 
 export function Settings({}: SettingsProps) {
-  const [activeSection, setActiveSection] = React.useState('pwa');
+  const [activeSection, setActiveSection] = React.useState('general');
   const [settings, setSettings] = useState<SystemSettings>();
+  const [isDirty, setIsDirty] = useState(false);
   const settingsRepo = remult.repo(SystemSettings);
 
   useEffect(() => {
@@ -37,9 +38,9 @@ export function Settings({}: SettingsProps) {
       let currentLevel = updatedSettings;
 
       for (let i = 0; i < keys.length - 1; i++) {
-      const currentKey = keys[i];
-      (currentLevel as any)[currentKey] = (currentLevel as any)[currentKey] || {};
-      currentLevel = (currentLevel as Record<string, any>)[currentKey];
+        const currentKey = keys[i];
+        (currentLevel as any)[currentKey] = (currentLevel as any)[currentKey] || {};
+        currentLevel = (currentLevel as Record<string, any>)[currentKey];
       }
 
       (currentLevel as any)[keys[keys.length - 1]] = value;
@@ -47,9 +48,19 @@ export function Settings({}: SettingsProps) {
       updatedSettings = { ...settings, [key]: parsedValue };
     }
 
+    setSettings(updatedSettings);
+    setIsDirty(true);
+  };
+
+  const handleSave = () => {
+    if (!settings) return;
+
     settingsRepo
-      .save(updatedSettings)
-      .then((savedSettings) => setSettings(savedSettings))
+      .save(settings)
+      .then((savedSettings) => {
+        setSettings(savedSettings);
+        setIsDirty(false);
+      })
       .catch((error) => console.error('Error saving settings:', error));
   };
 
@@ -128,7 +139,22 @@ export function Settings({}: SettingsProps) {
               </button>
             ))}
           </nav>
-          <div className="p-6 col-span-3">{renderSectionContent()}</div>
+          <div className="p-6 col-span-3">
+            {renderSectionContent()}
+            <div className="mt-4 flex justify-end">
+                <button
+                onClick={handleSave}
+                disabled={!isDirty}
+                className={`px-3 py-1 rounded-md text-sm ${
+                  isDirty
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+                >
+                Save
+                </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -155,8 +181,8 @@ const GeneralSettings = ({ settings, onChange }: { settings: SystemSettings; onC
         label="Temperature Unit"
         name="temperatureUnit"
         options={[
-          { value: 'C', label: 'Celsius' },
           { value: 'F', label: 'Fahrenheit' },
+          { value: 'C', label: 'Celsius' },
         ]}
         value={settings.temperatureUnit}
         onChange={(value) => onChange('temperatureUnit', value)}
@@ -206,23 +232,117 @@ const HardwareSettings = ({ settings, onChange }: { settings: SystemSettings; on
         placeholder="0x27"
       />
       <SettingInput
-        label="Moisture Sensor ADC I2C Address"
-        value={settings.moistureSensorAddress ? `0x${settings.moistureSensorAddress.toString(16)}` : ''}
+        label="Analog Ditigal Converter I2C Address"
+        value={settings.analogDigitalAddress ? `0x${settings.analogDigitalAddress.toString(16)}` : ''}
         onChange={(value) => onChange('moistureSensorAddress', value)}
         placeholder="0x48"
       />
-      <SettingInput
-        label="Moisture Reading Interval (minutes)"
-        type="number"
-        value={settings.moistureSensorReadingInterval}
-        onChange={(value) => onChange('moistureSensorReadingInterval', value)}
-      />
-      <SettingInput
-        label="Moisture Sensor Calibration"
-        type="number"
-        value={settings.moistureSensorCalibration}
-        onChange={(value) => onChange('moistureSensorCalibration', value)}
-      />
+      <div className="space-y-4">
+        <h3 className="text-md font-medium text-gray-800">Sensors</h3>
+        {settings.sensors?.map((sensor, index) => (
+          <>
+            <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4 border bg-blue-50 p-4 rounded-md">
+            <div>
+            <SettingInput
+              label="Sensor Name"
+              value={sensor.name}
+              onChange={(value) => onChange(`sensors.${index}.name`, value)}
+              placeholder="Enter sensor name"
+            />
+            <SettingSelect
+              label="Sensor Type"
+              value={sensor.sensorType}
+              options={[
+              { value: 'moisture', label: 'Moisture' },
+              { value: 'temperature', label: 'Temperature' },
+              { value: 'humidity', label: 'Humidity' },
+              ]}
+              onChange={(value) => onChange(`sensors.${index}.sensorType`, value)}
+            />
+            <SettingInput
+              label="Analog Port"
+              type="number"
+              value={sensor.analogPort}
+              onChange={(value) => onChange(`sensors.${index}.analogPort`, value)}
+              placeholder="Enter analog port number"
+            />
+            <SettingRadio
+              label="Read Method"
+              name={`sensors.${index}.readMethod`}
+              options={[
+              { value: 'single', label: 'Single' },
+              { value: 'averageFive', label: 'Average of 5' },
+              ]}
+              value={sensor.readMethod}
+              onChange={(value) => onChange(`sensors.${index}.readMethod`, value)}
+            />
+            </div>
+            <div>
+            <SettingInput
+              label="Min Analog Value"
+              type="number"
+              value={sensor.minAnalogValue}
+              onChange={(value) => onChange(`sensors.${index}.minAnalogValue`, value)}
+              placeholder="Enter minimum analog value"
+            />
+            <SettingInput
+              label="Max Analog Value"
+              type="number"
+              value={sensor.maxAnalogValue}
+              onChange={(value) => onChange(`sensors.${index}.maxAnalogValue`, value)}
+              placeholder="Enter maximum analog value"
+            />
+            <SettingSelect
+              label="Read Value As"
+              value={sensor.readValueAs}
+              options={[
+              { value: 'raw', label: 'Raw' },
+              { value: 'voltage', label: 'Voltage' },
+              { value: 'percent', label: 'Percent' },
+              ]}
+              onChange={(value) => onChange(`sensors.${index}.readValueAs`, value)}
+            />
+            <SettingInput
+              label="Read Frequency (seconds)"
+              type="number"
+              value={sensor.readFrequencySeconds}
+              onChange={(value) => onChange(`sensors.${index}.readFrequencySeconds`, value)}
+              placeholder="Enter read frequency in seconds"
+            />
+            </div>
+            
+            </div>
+            <div className="col-span-1 md:col-span-2 flex justify-end">
+            <button
+            onClick={() => {
+              const updatedSensors = [...(settings.sensors || [])];
+              updatedSensors.splice(index, 1);
+              onChange('sensors', updatedSensors);
+            }}
+            className="text-red-600 hover:underline text-sm"
+            >
+            Remove Sensor
+            </button>
+          </div>
+          </>
+        ))}
+        <button
+          onClick={() => {
+            const newSensor = {
+              name: '',
+              sensorType: 'moisture',
+              analogPort: 0,
+              minAnalogValue: 0,
+              maxAnalogValue: 1023,
+              readValueAs: 'raw',
+            };
+            onChange('sensors', [...(settings.sensors || []), newSensor]);
+          }}
+          className="text-blue-600 hover:underline text-sm"
+        >
+          Add Sensor
+        </button>
+      </div>
     </div>
   </div>
 );

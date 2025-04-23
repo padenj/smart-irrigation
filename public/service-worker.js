@@ -1,5 +1,5 @@
 const CACHE_NAME = "smart-irrigation-cache-v1";
-const urlsToCache = ["/", "/index.html", "/manifest.json"];
+const urlsToCache = ["/manifest.json"];
 
 // Install the service worker
 self.addEventListener("install", (event) => {

@@ -4,6 +4,13 @@ import { Zone } from "./zones.js";
 import { Program } from "./programs.js";
 import { WeatherData } from "./weatherData.js";
 
+export interface SensorData {
+  rawValue: number;
+  convertedValue: number;
+  unit: string;
+  lastUpdated: string | null;
+}
+
 @Entity("systemStatus", {
   allowApiCrud: true
 })
@@ -102,6 +109,11 @@ export class SystemStatus {
       defaultIncluded: true, 
     })
     activeProgram: Program | null = null
+
+    @Fields.json()
+    sensorData: {
+      [key: string]: SensorData
+    } = {}
 
 }
 

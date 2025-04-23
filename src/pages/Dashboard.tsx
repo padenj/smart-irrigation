@@ -1,14 +1,9 @@
-import { Droplets, Clock, Cloud, CloudRain, ThermometerSun } from 'lucide-react';
 
 import SystemStatusCard from '../components/SystemStatusCard';
 import { useStatusContext } from '../hooks/StatusContext';
-import { Program } from '../shared/programs';
-import { remult } from 'remult';
-import { DateTimeUtils } from '../server/utilities/DateTimeUtils';
-import { useSettingsContext } from '../hooks/SettingsContext';
-import React from 'react';
 import WeatherCard from '../components/WeatherCard';
 import { ScheduleCard } from '../components/ScheduleCard';
+import { SensorReadingsCard } from '../components/SensorReadingsCard';
 
 interface DashboardProps {
 }
@@ -17,7 +12,6 @@ interface DashboardProps {
 export function Dashboard({}: DashboardProps) {
   
   const systemStatus = useStatusContext();
-  const systemSettings = useSettingsContext();
 
 
 
@@ -31,6 +25,9 @@ export function Dashboard({}: DashboardProps) {
      
       {/* Next Scheduled */}
       <ScheduleCard />
+      
+      {/* Sensor Readings */}
+      <SensorReadingsCard />
       
       {/* System Status */}
       <SystemStatusCard />

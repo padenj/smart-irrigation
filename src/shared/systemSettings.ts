@@ -7,6 +7,17 @@ export interface WeatherServiceSettings {
     data?: unknown;
 }
 
+export interface SensorSettings {
+    name: string
+    sensorType: 'moisture' | 'temperature' | 'humidity',
+    analogPort: number,
+    minAnalogValue: number 
+    maxAnalogValue: number,
+    readValueAs: 'raw' | 'voltage' | 'percent',
+    readFrequencySeconds: number,
+    readMethod: 'single' | 'averageFive'
+}
+
 @Entity("settings", {
     allowApiCrud: true
 })
@@ -71,16 +82,12 @@ export class SystemSettings {
     };
     
     @Fields.number()
-    moistureSensorAddress = 0x48; // I2C address for the moisture sensor
-
-    @Fields.string()
-    moistureSensorReadingInterval = "5"; // Interval in minutes for reading moisture sensor
-
-    @Fields.number()
-    moistureSensorCalibration = 0; // Calibration value for the moisture sensor
+    analogDigitalAddress = 0x48; // I2C address for the moisture sensor
 
     @Fields.number()
     lcdAddress = 0x27; // I2C address for the LCD display
 
+    @Fields.json()
+    sensors: SensorSettings[] = [];
 
 }

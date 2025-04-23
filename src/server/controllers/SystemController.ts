@@ -5,6 +5,7 @@ import { DisplayController } from './DisplayController';
 import { WeatherController } from './WeatherController';
 import { ProgramController } from './ProgramController';
 import { ZoneController } from './ZoneController';
+import { SensorController } from './SensorController';
 
 export const systemStatusRepo = repo(SystemStatus);
 
@@ -31,9 +32,11 @@ export class SystemController {
     static async run() {
         const systemSettings = await repo(SystemSettings).findFirst();
 
+        await SensorController.ReadSensorData();
         SystemController.UpdateLastRunDate();
         DisplayController.setTime(systemSettings?.timezone|| 'UTC');
-        ProgramController.runNextScheduledProgram();
+        await ProgramController.runNextScheduledProgram();
+
         return "Scheduler run initiated successfully";
     }
 

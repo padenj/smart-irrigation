@@ -3,9 +3,10 @@ import ADS1115 from 'ads1115';
 import { remult } from 'remult';
 import { SystemSettings } from '../../shared/systemSettings';
 import dotenv from 'dotenv';
+import { IAtoDController } from '../types/hardware';
 dotenv.config({ path: '.env.local' });
 
-class ADS1115Wrapper {
+class ADS1115Wrapper implements IAtoDController {
     private static instance: ADS1115Wrapper | null = null;
     private bus: PromisifiedBus | null = null;
     private ads1115: any = null;
@@ -30,16 +31,15 @@ class ADS1115Wrapper {
             this.ads1115 = {
                 measure: async (channel: string) => {
                     console.log(`Mock measure called for channel: ${channel}`);
-                    return 1000; // Mock value
+                    return Math.floor(Math.random() * 32001); // Random value between 0 and 32000
                 },
             };
         } else {
             const busNumber = 1; // Default I2C bus number
             this.bus = await openPromisified(busNumber);
             const settings = await this.settingsRepo.findFirst();
-            const address = settings ? settings.moistureSensorAddress : 0x48; // Default address // Retrieve address from Settings
+            const address = settings ? settings.analogDigitalAddress : 0x48; // Default address // Retrieve address from Settings
             this.ads1115 = await ADS1115(this.bus, address);
-            this.calibrationValue = settings ? settings.moistureSensorCalibration : 0; // Retrieve calibration value from Settings
         }
     }
 

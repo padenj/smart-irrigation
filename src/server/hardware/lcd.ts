@@ -1,7 +1,6 @@
 import LCD from 'raspberrypi-liquid-crystal';
 import dotenv from 'dotenv';
 import { ILCDManager } from '../types/hardware';
-import { LogController } from '../controllers/LogController';
 import { remult } from 'remult';
 import { SystemSettings } from '../../shared/systemSettings';
 dotenv.config({ path: '.env.local' });
@@ -45,9 +44,9 @@ class LCDManager implements ILCDManager {
                 console.log('LCD initialized');
             } catch (error) {
                 if (error instanceof Error) {
-                    LogController.writeLog('Error initializing LCD: ' + error.message);
+                   console.log('Error initializing LCD: ' + error.message);
                 } else {
-                    LogController.writeLog('Error initializing LCD: Unknown error');
+                    console.log('Error initializing LCD: Unknown error');
                 }
                 this.lcd = MOCK_LCD;
                 console.log('Falling back to Mock LCD');

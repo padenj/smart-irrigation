@@ -59,7 +59,6 @@ class LCDManager implements ILCDManager {
     public static async getInstance(): Promise<LCDManager> {
         if (!LCDManager.instance) {
             LCDManager.instance = new LCDManager();
-            await LCDManager.instance.initialize();
         }
         return LCDManager.instance;
     }

@@ -44,6 +44,8 @@ export class SensorController {
             return;
         }   
 
+        const referenceVoltage = systemSettings.sensorReferenceVoltage || 3.3; // Default to 3.3V if not set
+
         for (const sensor of systemSettings.sensors) {
             const sensorData = systemStatus.sensorData[sensor.name] || {
                 rawValue: 0,
@@ -106,13 +108,17 @@ export class SensorController {
             let convertedValue: number;
             let unit: string;
 
+            
             switch (sensor.readValueAs) {
                 case 'raw':
                     convertedValue = rawValue;
                     unit = 'raw';
                     break;
                 case 'voltage':
-                    convertedValue = parseFloat(((rawValue / 32767) * 5).toFixed(2)); // Assuming 5V reference
+                    convertedValue = parseFloat(((rawValue / 32767) * referenceVoltage).toFixed(2)); // Assuming 5V reference
+                    if (sensor.inverted) {
+                        convertedValue = referenceVoltage - convertedValue; // Invert the voltage
+                    }
                     unit = 'V';
                     break;
                 case 'percent':
@@ -123,6 +129,9 @@ export class SensorController {
                             100
                         ).toFixed(2)
                     );
+                    if (sensor.inverted) {
+                        convertedValue = 100 - convertedValue; // Invert the percentage
+                    }
                     unit = '%';
                     break;
                 default:

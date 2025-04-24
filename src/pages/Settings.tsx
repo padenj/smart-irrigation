@@ -4,10 +4,10 @@ import { remult } from 'remult';
 import { SystemSettings } from '../shared/systemSettings';
 
 interface SettingsProps {
-  
+
 }
 
-export function Settings({}: SettingsProps) {
+export function Settings({ }: SettingsProps) {
   const [activeSection, setActiveSection] = React.useState('general');
   const [settings, setSettings] = useState<SystemSettings>();
   const [isDirty, setIsDirty] = useState(false);
@@ -128,11 +128,10 @@ export function Settings({}: SettingsProps) {
               <button
                 key={id}
                 onClick={() => setActiveSection(id)}
-                className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium ${
-                  activeSection === id
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
+                className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium ${activeSection === id
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'text-gray-700 hover:bg-gray-50'
+                  }`}
               >
                 <Icon className="h-5 w-5" />
                 <span>{label}</span>
@@ -142,17 +141,16 @@ export function Settings({}: SettingsProps) {
           <div className="p-6 col-span-3">
             {renderSectionContent()}
             <div className="mt-4 flex justify-end">
-                <button
+              <button
                 onClick={handleSave}
                 disabled={!isDirty}
-                className={`px-3 py-1 rounded-md text-sm ${
-                  isDirty
+                className={`px-3 py-1 rounded-md text-sm ${isDirty
                   ? 'bg-blue-600 text-white hover:bg-blue-700'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-                >
+                  }`}
+              >
                 Save
-                </button>
+              </button>
             </div>
           </div>
         </div>
@@ -207,13 +205,13 @@ const PWASettings = () => {
     <div className="space-y-6">
       <h2 className="text-lg font-medium text-gray-900">PWA Settings</h2>
       <div className="space-y-4">
-     
-          <div className="install-banner bg-yellow-300 text-black p-2 w-full flex justify-between items-center">
-                <p className="mr-4 text-sm">
-                    To install the app, open the browser menu and select "Add to Home Screen".
-                </p>
-            </div>
-    
+
+        <div className="install-banner bg-yellow-300 text-black p-2 w-full flex justify-between items-center">
+          <p className="mr-4 text-sm">
+            To install the app, open the browser menu and select "Add to Home Screen".
+          </p>
+        </div>
+
       </div>
     </div>
   );
@@ -225,105 +223,121 @@ const HardwareSettings = ({ settings, onChange }: { settings: SystemSettings; on
   <div className="space-y-6">
     <h2 className="text-lg font-medium text-gray-900">Hardware Configuration</h2>
     <div className="space-y-4">
-      <SettingInput
+      <SettingHexInput
         label="LCD Display I2C Address"
-        value={settings.lcdAddress ? `0x${settings.lcdAddress.toString(16)}` : ''}
+        value={settings.lcdAddress}
         onChange={(value) => onChange('lcdAddress', value)}
         placeholder="0x27"
       />
-      <SettingInput
-        label="Analog Ditigal Converter I2C Address"
-        value={settings.analogDigitalAddress ? `0x${settings.analogDigitalAddress.toString(16)}` : ''}
-        onChange={(value) => onChange('moistureSensorAddress', value)}
+      <SettingHexInput
+        label="Analog Digital Converter I2C Address"
+        value={settings.analogDigitalAddress}
+        onChange={(value) => onChange('analogDigitalAddress', value)}
         placeholder="0x48"
+      />
+      <SettingInput
+        label="Sensor Reference Voltage"
+        type="number"
+        value={settings.sensorReferenceVoltage || ''}
+        onChange={(value) => onChange('sensorReferenceVoltage', value)}
+        placeholder="Enter sensor reference voltage"
       />
       <div className="space-y-4">
         <h3 className="text-md font-medium text-gray-800">Sensors</h3>
         {settings.sensors?.map((sensor, index) => (
           <>
             <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4 border bg-blue-50 p-4 rounded-md">
-            <div>
-            <SettingInput
-              label="Sensor Name"
-              value={sensor.name}
-              onChange={(value) => onChange(`sensors.${index}.name`, value)}
-              placeholder="Enter sensor name"
-            />
-            <SettingSelect
-              label="Sensor Type"
-              value={sensor.sensorType}
-              options={[
-              { value: 'moisture', label: 'Moisture' },
-              { value: 'temperature', label: 'Temperature' },
-              { value: 'humidity', label: 'Humidity' },
-              ]}
-              onChange={(value) => onChange(`sensors.${index}.sensorType`, value)}
-            />
-            <SettingInput
-              label="Analog Port"
-              type="number"
-              value={sensor.analogPort}
-              onChange={(value) => onChange(`sensors.${index}.analogPort`, value)}
-              placeholder="Enter analog port number"
-            />
-            <SettingRadio
-              label="Read Method"
-              name={`sensors.${index}.readMethod`}
-              options={[
-              { value: 'single', label: 'Single' },
-              { value: 'averageFive', label: 'Average of 5' },
-              ]}
-              value={sensor.readMethod}
-              onChange={(value) => onChange(`sensors.${index}.readMethod`, value)}
-            />
-            </div>
-            <div>
-            <SettingInput
-              label="Min Analog Value"
-              type="number"
-              value={sensor.minAnalogValue}
-              onChange={(value) => onChange(`sensors.${index}.minAnalogValue`, value)}
-              placeholder="Enter minimum analog value"
-            />
-            <SettingInput
-              label="Max Analog Value"
-              type="number"
-              value={sensor.maxAnalogValue}
-              onChange={(value) => onChange(`sensors.${index}.maxAnalogValue`, value)}
-              placeholder="Enter maximum analog value"
-            />
-            <SettingSelect
-              label="Read Value As"
-              value={sensor.readValueAs}
-              options={[
-              { value: 'raw', label: 'Raw' },
-              { value: 'voltage', label: 'Voltage' },
-              { value: 'percent', label: 'Percent' },
-              ]}
-              onChange={(value) => onChange(`sensors.${index}.readValueAs`, value)}
-            />
-            <SettingInput
-              label="Read Frequency (seconds)"
-              type="number"
-              value={sensor.readFrequencySeconds}
-              onChange={(value) => onChange(`sensors.${index}.readFrequencySeconds`, value)}
-              placeholder="Enter read frequency in seconds"
-            />
-            </div>
-            
+              <div>
+                <SettingInput
+                  label="Sensor Name"
+                  value={sensor.name}
+                  onChange={(value) => onChange(`sensors.${index}.name`, value)}
+                  placeholder="Enter sensor name"
+                />
+                <SettingSelect
+                  label="Sensor Type"
+                  value={sensor.sensorType}
+                  options={[
+                    { value: 'moisture', label: 'Moisture' },
+                    { value: 'temperature', label: 'Temperature' },
+                    { value: 'humidity', label: 'Humidity' },
+                  ]}
+                  onChange={(value) => onChange(`sensors.${index}.sensorType`, value)}
+                />
+                <SettingInput
+                  label="Analog Port"
+                  type="number"
+                  value={sensor.analogPort}
+                  onChange={(value) => onChange(`sensors.${index}.analogPort`, value)}
+                  placeholder="Enter analog port number"
+                />
+                <SettingRadio
+                  label="Read Method"
+                  name={`sensors.${index}.readMethod`}
+                  options={[
+                    { value: 'single', label: 'Single' },
+                    { value: 'averageFive', label: 'Average of 5' },
+                  ]}
+                  value={sensor.readMethod}
+                  onChange={(value) => onChange(`sensors.${index}.readMethod`, value)}
+                />
+                <SettingRadio
+                  label="Inverted"
+                  name={`sensors.${index}.inverted`}
+                  options={[
+                    { value: 'false', label: 'No' },
+                    { value: 'true', label: 'Yes' },
+                  ]}
+                  value={sensor.inverted ? 'true' : 'false'}
+                  onChange={(value) => onChange(`sensors.${index}.inverted`, value === 'true')}
+                />
+              </div>
+              <div>
+                <SettingInput
+                  label="Min Analog Value"
+                  type="number"
+                  value={sensor.minAnalogValue}
+                  onChange={(value) => onChange(`sensors.${index}.minAnalogValue`, value)}
+                  placeholder="Enter minimum analog value"
+                />
+                <SettingInput
+                  label="Max Analog Value"
+                  type="number"
+                  value={sensor.maxAnalogValue}
+                  onChange={(value) => onChange(`sensors.${index}.maxAnalogValue`, value)}
+                  placeholder="Enter maximum analog value"
+                />
+                <SettingSelect
+                  label="Read Value As"
+                  value={sensor.readValueAs}
+                  options={[
+                    { value: 'raw', label: 'Raw' },
+                    { value: 'voltage', label: 'Voltage' },
+                    { value: 'percent', label: 'Percent' },
+                  ]}
+                  onChange={(value) => onChange(`sensors.${index}.readValueAs`, value)}
+                />
+                <SettingInput
+                  label="Read Frequency (seconds)"
+                  type="number"
+                  value={sensor.readFrequencySeconds}
+                  onChange={(value) => onChange(`sensors.${index}.readFrequencySeconds`, value)}
+                  placeholder="Enter read frequency in seconds"
+                />
+              </div>
             </div>
             <div className="col-span-1 md:col-span-2 flex justify-end">
-            <button
-            onClick={() => {
-              const updatedSensors = [...(settings.sensors || [])];
-              updatedSensors.splice(index, 1);
-              onChange('sensors', updatedSensors);
-            }}
-            className="text-red-600 hover:underline text-sm"
-            >
-            Remove Sensor
-            </button>
-          </div>
+              <button
+                onClick={() => {
+                  const updatedSensors = [...(settings.sensors || [])];
+                  updatedSensors.splice(index, 1);
+                  onChange('sensors', updatedSensors);
+                }}
+                className="text-red-600 hover:underline text-sm"
+              >
+                Remove Sensor
+              </button>
+            </div>
           </>
         ))}
         <button
@@ -333,8 +347,11 @@ const HardwareSettings = ({ settings, onChange }: { settings: SystemSettings; on
               sensorType: 'moisture',
               analogPort: 0,
               minAnalogValue: 0,
-              maxAnalogValue: 1023,
+              maxAnalogValue: 32767,
               readValueAs: 'raw',
+              readFrequencySeconds: 15,
+              readMethod: 'single',
+              inverted: false,
             };
             onChange('sensors', [...(settings.sensors || []), newSensor]);
           }}
@@ -360,52 +377,88 @@ const WeatherSettings = ({ settings, onChange }: { settings: SystemSettings; onC
         ]}
         onChange={(value) => onChange('weatherService', value)}
       />
-      
-        <div className="space-y-4">
-          <h3 className="text-md font-medium text-gray-800">WeatherAPI Settings</h3>
-          <SettingInput
-            label="API Key"
-            type="password"
-            value={settings.weatherServiceSettings?.weatherapi?.apiKey || ''}
-            onChange={(value) => onChange('weatherServiceSettings.weatherApi.apiKey', value)}
-          />
-          <SettingInput
-            label="Location"
-            value={settings.weatherServiceSettings?.weatherapi?.location || ''}
-            onChange={(value) => onChange('weatherServiceSettings.weatherApi.location', value)}
-            placeholder="Enter location (lat,lon), zip code or city, state"
-          />
-          <SettingInput
-            label="Update Interval (minutes)"
-            type="number"
-            value={settings.weatherServiceSettings?.weatherapi?.updateInterval || ''}
-            onChange={(value) => onChange('weatherServiceSettings.weatherApi.updateInterval', value)}
-          />
-        </div>
-        
-        <div className="space-y-4">
-          <h3 className="text-md font-medium text-gray-800">OpenWeatherMap Settings</h3>
-          <SettingInput
-            label="API Key"
-            type="password"
-            value={settings.weatherServiceSettings?.openweathermap?.apiKey || ''}
-            onChange={(value) => onChange('weatherServiceSettings.openWeatherMap.apiKey', value)}
-          />
-          <SettingInput
-            label="Location"
-            value={settings.weatherServiceSettings?.openweathermap?.location || ''}
-            onChange={(value) => onChange('weatherServiceSettings.openWeatherMap.location', value)}
-            placeholder="Enter location (lat,lon) or zip code"
-          />
-          
-          <SettingInput
-            label="Update Interval (minutes)"
-            type="number"
-            value={settings.weatherServiceSettings?.openweathermap?.updateInterval || ''}
-            onChange={(value) => onChange('weatherServiceSettings.openWeatherMap.updateInterval', value)}
-          />
-        </div>
+
+      <div className="space-y-4">
+        <h3 className="text-md font-medium text-gray-800">WeatherAPI Settings</h3>
+        <SettingInput
+          label="API Key"
+          type="password"
+          value={settings.weatherServiceSettings?.weatherapi?.apiKey || ''}
+          onChange={(value) => onChange('weatherServiceSettings.weatherApi.apiKey', value)}
+        />
+        <SettingInput
+          label="Location"
+          value={settings.weatherServiceSettings?.weatherapi?.location || ''}
+          onChange={(value) => onChange('weatherServiceSettings.weatherApi.location', value)}
+          placeholder="Enter location (lat,lon), zip code or city, state"
+        />
+        <SettingInput
+          label="Update Interval (minutes)"
+          type="number"
+          value={settings.weatherServiceSettings?.weatherapi?.updateInterval || ''}
+          onChange={(value) => onChange('weatherServiceSettings.weatherApi.updateInterval', value)}
+        />
+      </div>
+
+      <div className="space-y-4">
+        <h3 className="text-md font-medium text-gray-800">OpenWeatherMap Settings</h3>
+        <SettingInput
+          label="API Key"
+          type="password"
+          value={settings.weatherServiceSettings?.openweathermap?.apiKey || ''}
+          onChange={(value) => onChange('weatherServiceSettings.openWeatherMap.apiKey', value)}
+        />
+        <SettingInput
+          label="Location"
+          value={settings.weatherServiceSettings?.openweathermap?.location || ''}
+          onChange={(value) => onChange('weatherServiceSettings.openWeatherMap.location', value)}
+          placeholder="Enter location (lat,lon) or zip code"
+        />
+
+        <SettingInput
+          label="Update Interval (minutes)"
+          type="number"
+          value={settings.weatherServiceSettings?.openweathermap?.updateInterval || ''}
+          onChange={(value) => onChange('weatherServiceSettings.openWeatherMap.updateInterval', value)}
+        />
+      </div>
     </div>
+  </div>
+);
+
+const SettingHexInput = ({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+  placeholder?: string;
+}) => (
+  <div>
+    <label className="block text-sm font-medium text-gray-700">{label}</label>
+    <input
+      type="text"
+      value={value ? `0x${value.toString(16).toUpperCase()}` : '0x'}
+      onChange={(e) => {
+        let sanitizedValue = e.target.value.toLowerCase().startsWith('0x') ? e.target.value : `0x${e.target.value}`;
+        sanitizedValue = sanitizedValue.replace(/[^0-9a-f]/gi, '').toLowerCase();
+        if (!sanitizedValue.startsWith('0x')) {
+          sanitizedValue = `0x${sanitizedValue}`;
+        }
+        const upperCaseValue = sanitizedValue.slice(0, 2) + sanitizedValue.slice(2).toUpperCase();
+        const parsedValue = upperCaseValue === '0x' ? NaN : parseInt(upperCaseValue, 16);
+
+        // Allow "0x0" to be typed and trigger onChange
+        if (upperCaseValue === '0x0' || (!isNaN(parsedValue) && parsedValue >= 0x00 && parsedValue <= 0x7F)) {
+          onChange(parsedValue || 0x00);
+        }
+      }}
+      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+      placeholder={placeholder}
+    />
   </div>
 );
 

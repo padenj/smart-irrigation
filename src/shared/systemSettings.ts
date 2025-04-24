@@ -16,6 +16,7 @@ export interface SensorSettings {
     readValueAs: 'raw' | 'voltage' | 'percent',
     readFrequencySeconds: number,
     readMethod: 'single' | 'averageFive'
+    inverted: boolean,
 }
 
 @Entity("settings", {
@@ -82,7 +83,10 @@ export class SystemSettings {
     };
     
     @Fields.number()
-    analogDigitalAddress = 0x48; // I2C address for the moisture sensor
+    analogDigitalAddress = 0x48; // I2C address for the AtoD converter
+
+    @Fields.number()
+    sensorReferenceVoltage = 3.3; // Voltage reference for the AtoD converter
 
     @Fields.number()
     lcdAddress = 0x27; // I2C address for the LCD display

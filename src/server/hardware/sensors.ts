@@ -1,6 +1,5 @@
 import { openPromisified, PromisifiedBus } from 'i2c-bus';
 import ADS1115 from 'ads1115';
-import { remult } from 'remult';
 import { SystemSettings } from '../../shared/systemSettings';
 import dotenv from 'dotenv';
 import { IAtoDController } from '../types/hardware';

@@ -9,7 +9,7 @@ export default defineConfig({
     csp({
       policy: {
         'default-src': ["self"],
-        'script-src': ["self", "unsafe-inline", "https://static.cloudflareinsights.com", "https://cdn.weather.com"],
+        'script-src': ["self", "unsafe-inline", "https://static.cloudflareinsights.com", "https://cdn.weatherapi.com"],
         // Add other directives as needed
       }
     })

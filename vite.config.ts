@@ -10,6 +10,8 @@ export default defineConfig({
       policy: {
         'default-src': ["self"],
         'script-src': ["self", "unsafe-inline", "https://static.cloudflareinsights.com", "https://cdn.weatherapi.com"],
+        'style-src': ["self", "unsafe-inline", "https://si.padenco.com"],
+        'style-src-elem': ["self", "unsafe-inline", "https://si.padenco.com"],
         // Add other directives as needed
       }
     })

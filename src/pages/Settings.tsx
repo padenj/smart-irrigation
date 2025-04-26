@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Bell, Cpu, Database, Globe, Shield, Sliders, Wifi } from 'lucide-react';
 import { remult } from 'remult';
 import { SystemSettings } from '../shared/systemSettings';
+import { useStatusContext } from '../hooks/StatusContext';
 
 interface SettingsProps {
 
@@ -219,150 +220,160 @@ const PWASettings = () => {
   // return (<InstallButton />);
 };
 
-const HardwareSettings = ({ settings, onChange }: { settings: SystemSettings; onChange: (key: string, value: any) => void }) => (
-  <div className="space-y-6">
-    <h2 className="text-lg font-medium text-gray-900">Hardware Configuration</h2>
-    <div className="space-y-4">
-      <SettingHexInput
-        label="LCD Display I2C Address"
-        value={settings.lcdAddress}
-        onChange={(value) => onChange('lcdAddress', value)}
-        placeholder="0x27"
-      />
-      <SettingHexInput
-        label="Analog Digital Converter I2C Address"
-        value={settings.analogDigitalAddress}
-        onChange={(value) => onChange('analogDigitalAddress', value)}
-        placeholder="0x48"
-      />
-      <SettingInput
-        label="Sensor Reference Voltage"
-        type="number"
-        value={settings.sensorReferenceVoltage || ''}
-        onChange={(value) => onChange('sensorReferenceVoltage', value)}
-        placeholder="Enter sensor reference voltage"
-      />
+const HardwareSettings = ({ settings, onChange }: { settings: SystemSettings; onChange: (key: string, value: any) => void }) => {
+  
+  const systemStatus = useStatusContext();
+  return (
+    <div className="space-y-6">
+      <h2 className="text-lg font-medium text-gray-900">Hardware Configuration</h2>
       <div className="space-y-4">
-        <h3 className="text-md font-medium text-gray-800">Sensors</h3>
-        {settings.sensors?.map((sensor, index) => (
-          <>
-            <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4 border bg-blue-50 p-4 rounded-md">
-              <div>
-                <SettingInput
-                  label="Sensor Name"
-                  value={sensor.name}
-                  onChange={(value) => onChange(`sensors.${index}.name`, value)}
-                  placeholder="Enter sensor name"
-                />
-                <SettingSelect
-                  label="Sensor Type"
-                  value={sensor.sensorType}
-                  options={[
-                    { value: 'moisture', label: 'Moisture' },
-                    { value: 'temperature', label: 'Temperature' },
-                    { value: 'humidity', label: 'Humidity' },
-                  ]}
-                  onChange={(value) => onChange(`sensors.${index}.sensorType`, value)}
-                />
-                <SettingInput
-                  label="Analog Port"
-                  type="number"
-                  value={sensor.analogPort}
-                  onChange={(value) => onChange(`sensors.${index}.analogPort`, value)}
-                  placeholder="Enter analog port number"
-                />
-                <SettingRadio
-                  label="Read Method"
-                  name={`sensors.${index}.readMethod`}
-                  options={[
-                    { value: 'single', label: 'Single' },
-                    { value: 'averageFive', label: 'Average of 5' },
-                  ]}
-                  value={sensor.readMethod}
-                  onChange={(value) => onChange(`sensors.${index}.readMethod`, value)}
-                />
-                <SettingRadio
-                  label="Inverted"
-                  name={`sensors.${index}.inverted`}
-                  options={[
-                    { value: 'false', label: 'No' },
-                    { value: 'true', label: 'Yes' },
-                  ]}
-                  value={sensor.inverted ? 'true' : 'false'}
-                  onChange={(value) => onChange(`sensors.${index}.inverted`, value === 'true')}
-                />
+        <SettingHexInput
+          label="LCD Display I2C Address"
+          value={settings.lcdAddress}
+          onChange={(value) => onChange('lcdAddress', value)}
+          placeholder="0x27"
+        />
+        <SettingHexInput
+          label="Analog Digital Converter I2C Address"
+          value={settings.analogDigitalAddress}
+          onChange={(value) => onChange('analogDigitalAddress', value)}
+          placeholder="0x48"
+        />
+        <SettingInput
+          label="Sensor Reference Voltage"
+          type="number"
+          value={settings.sensorReferenceVoltage || ''}
+          onChange={(value) => onChange('sensorReferenceVoltage', value)}
+          placeholder="Enter sensor reference voltage"
+        />
+        <div className="space-y-4">
+          <h3 className="text-md font-medium text-gray-800">Sensors</h3>
+          {settings.sensors?.map((sensor, index) => (
+            <>
+              <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4 border bg-blue-50 p-4 rounded-md">
+                <div>
+                  <SettingInput
+                    label="Sensor Name"
+                    value={sensor.name}
+                    onChange={(value) => onChange(`sensors.${index}.name`, value)}
+                    placeholder="Enter sensor name"
+                  />
+                  <SettingSelect
+                    label="Sensor Type"
+                    value={sensor.sensorType}
+                    options={[
+                      { value: 'moisture', label: 'Moisture' },
+                      { value: 'temperature', label: 'Temperature' },
+                      { value: 'humidity', label: 'Humidity' },
+                    ]}
+                    onChange={(value) => onChange(`sensors.${index}.sensorType`, value)}
+                  />
+                  <SettingInput
+                    label="Analog Port"
+                    type="number"
+                    value={sensor.analogPort}
+                    onChange={(value) => onChange(`sensors.${index}.analogPort`, value)}
+                    placeholder="Enter analog port number"
+                  />
+                  <SettingRadio
+                    label="Read Method"
+                    name={`sensors.${index}.readMethod`}
+                    options={[
+                      { value: 'single', label: 'Single' },
+                      { value: 'averageFive', label: 'Average of 5' },
+                    ]}
+                    value={sensor.readMethod}
+                    onChange={(value) => onChange(`sensors.${index}.readMethod`, value)}
+                  />
+                  <SettingRadio
+                    label="Inverted"
+                    name={`sensors.${index}.inverted`}
+                    options={[
+                      { value: 'false', label: 'No' },
+                      { value: 'true', label: 'Yes' },
+                    ]}
+                    value={sensor.inverted ? 'true' : 'false'}
+                    onChange={(value) => onChange(`sensors.${index}.inverted`, value === 'true')}
+                  />
+                </div>
+                <div>
+                  <SettingInput
+                    label="Min Analog Value"
+                    type="number"
+                    value={sensor.minAnalogValue}
+                    onChange={(value) => onChange(`sensors.${index}.minAnalogValue`, value)}
+                    placeholder="Enter minimum analog value"
+                  />
+                  <SettingInput
+                    label="Max Analog Value"
+                    type="number"
+                    value={sensor.maxAnalogValue}
+                    onChange={(value) => onChange(`sensors.${index}.maxAnalogValue`, value)}
+                    placeholder="Enter maximum analog value"
+                  />
+                  <SettingSelect
+                    label="Read Value As"
+                    value={sensor.readValueAs}
+                    options={[
+                      { value: 'raw', label: 'Raw' },
+                      { value: 'voltage', label: 'Voltage' },
+                      { value: 'percent', label: 'Percent' },
+                    ]}
+                    onChange={(value) => onChange(`sensors.${index}.readValueAs`, value)}
+                  />
+                  <SettingInput
+                    label="Read Frequency (seconds)"
+                    type="number"
+                    value={sensor.readFrequencySeconds}
+                    onChange={(value) => onChange(`sensors.${index}.readFrequencySeconds`, value)}
+                    placeholder="Enter read frequency in seconds"
+                  />
+                    <div className="mt-4 bg-green-400 p-4 rounded-md shadow-sm">
+                      <label className="block text-sm font-medium text-gray-700">Current Raw Value</label>
+                      <p className="mt-1 text-sm text-gray-900 font-semibold">
+                      {systemStatus?.sensorData?.[sensor.name]?.rawValue ?? 'N/A'}
+                      </p>
+                    </div>
+                </div>
               </div>
-              <div>
-                <SettingInput
-                  label="Min Analog Value"
-                  type="number"
-                  value={sensor.minAnalogValue}
-                  onChange={(value) => onChange(`sensors.${index}.minAnalogValue`, value)}
-                  placeholder="Enter minimum analog value"
-                />
-                <SettingInput
-                  label="Max Analog Value"
-                  type="number"
-                  value={sensor.maxAnalogValue}
-                  onChange={(value) => onChange(`sensors.${index}.maxAnalogValue`, value)}
-                  placeholder="Enter maximum analog value"
-                />
-                <SettingSelect
-                  label="Read Value As"
-                  value={sensor.readValueAs}
-                  options={[
-                    { value: 'raw', label: 'Raw' },
-                    { value: 'voltage', label: 'Voltage' },
-                    { value: 'percent', label: 'Percent' },
-                  ]}
-                  onChange={(value) => onChange(`sensors.${index}.readValueAs`, value)}
-                />
-                <SettingInput
-                  label="Read Frequency (seconds)"
-                  type="number"
-                  value={sensor.readFrequencySeconds}
-                  onChange={(value) => onChange(`sensors.${index}.readFrequencySeconds`, value)}
-                  placeholder="Enter read frequency in seconds"
-                />
+              <div className="col-span-1 md:col-span-2 flex justify-end">
+                <button
+                  onClick={() => {
+                    const updatedSensors = [...(settings.sensors || [])];
+                    updatedSensors.splice(index, 1);
+                    onChange('sensors', updatedSensors);
+                  }}
+                  className="text-red-600 hover:underline text-sm"
+                >
+                  Remove Sensor
+                </button>
               </div>
-            </div>
-            <div className="col-span-1 md:col-span-2 flex justify-end">
-              <button
-                onClick={() => {
-                  const updatedSensors = [...(settings.sensors || [])];
-                  updatedSensors.splice(index, 1);
-                  onChange('sensors', updatedSensors);
-                }}
-                className="text-red-600 hover:underline text-sm"
-              >
-                Remove Sensor
-              </button>
-            </div>
-          </>
-        ))}
-        <button
-          onClick={() => {
-            const newSensor = {
-              name: '',
-              sensorType: 'moisture',
-              analogPort: 0,
-              minAnalogValue: 0,
-              maxAnalogValue: 32767,
-              readValueAs: 'raw',
-              readFrequencySeconds: 15,
-              readMethod: 'single',
-              inverted: false,
-            };
-            onChange('sensors', [...(settings.sensors || []), newSensor]);
-          }}
-          className="text-blue-600 hover:underline text-sm"
-        >
-          Add Sensor
-        </button>
+            </>
+          ))}
+          <button
+            onClick={() => {
+              const newSensor = {
+                name: '',
+                sensorType: 'moisture',
+                analogPort: 0,
+                minAnalogValue: 0,
+                maxAnalogValue: 32767,
+                readValueAs: 'raw',
+                readFrequencySeconds: 15,
+                readMethod: 'single',
+                inverted: false,
+              };
+              onChange('sensors', [...(settings.sensors || []), newSensor]);
+            }}
+            className="text-blue-600 hover:underline text-sm"
+          >
+            Add Sensor
+          </button>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const WeatherSettings = ({ settings, onChange }: { settings: SystemSettings; onChange: (key: string, value: any) => void }) => (
   <div className="space-y-6">

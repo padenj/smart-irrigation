@@ -3,7 +3,6 @@ import { remult } from 'remult';
 import { SystemSettings, WeatherServiceSettings } from '../../shared/systemSettings';
 import { WeatherCurrentData, WeatherData, WeatherForecastData } from '../../shared/weatherData';
 import { LogController } from '../controllers/LogController';
-import { CornerDownLeft } from 'lucide-react';
 import { DateTimeUtils } from '../utilities/DateTimeUtils';
 
 

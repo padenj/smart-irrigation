@@ -9,9 +9,10 @@ export default defineConfig({
     csp({
       policy: {
         'default-src': ["self"],
-        'script-src': ["self", "unsafe-inline", "https://static.cloudflareinsights.com", "https://cdn.weatherapi.com"],
+        'script-src': ["self", "unsafe-inline", "https://static.cloudflareinsights.com"],
         'style-src': ["self", "unsafe-inline", "https://si.padenco.com"],
         'style-src-elem': ["self", "unsafe-inline", "https://si.padenco.com"],
+        'img-src': ["self", "https://cdn.weatherapi.com", "https://openweathermap.org"],
         // Add other directives as needed
       }
     })

@@ -28,7 +28,8 @@ export class WeatherController {
             const now = new Date();
             const minutesSinceLastUpdate = (now.getTime() - lastUpdated.getTime()) / (1000 * 60);
 
-            if (minutesSinceLastUpdate < settings.weatherUpdateInterval) {
+            const serviceSettings = settings.weatherServiceSettings[settings.weatherService as keyof typeof settings.weatherServiceSettings];
+            if (serviceSettings && minutesSinceLastUpdate < serviceSettings.updateInterval) {
             console.log('Weather update not required');
             return;
             }

@@ -18,9 +18,9 @@ export async function fetchWeather(): Promise<WeatherData|null> {
 
     if (!settings.weatherServiceSettings['weatherapi']) {
         settings.weatherServiceSettings['weatherapi'] = {
-            apiKey: settings.weatherApiKey,
-            location: `${settings.latitude}, ${settings.longitude}`,
-            updateInterval: settings.weatherUpdateInterval
+            apiKey: '',
+            location: '',
+            updateInterval: 60, // default to 60 minutes
         };
         await remult.repo(SystemSettings).save(settings);
     }

@@ -29,12 +29,6 @@ export class SystemSettings {
     @Fields.string()
     timezone = "America/Denver";
 
-    @Fields.string()
-    latitude = "39.9205"; // Latitude for weather API
-
-    @Fields.string()
-    longitude = "-105.0867"; // Longitude for weather API
-
     @Fields.string<SystemSettings>({
         validate: (setting) => {
             if (setting.temperatureUnit !== "F" && setting.temperatureUnit !== "C") {
@@ -55,9 +49,6 @@ export class SystemSettings {
 
     @Fields.string()
     weatherService = "weatherapi"; // openmateo or weatherapi
-
-    @Fields.number()
-    weatherUpdateInterval = 15; // Interval in minutes for weather updates
 
     @Fields.json()
     weatherServiceSettings: {

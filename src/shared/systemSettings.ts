@@ -56,12 +56,6 @@ export class SystemSettings {
     @Fields.string()
     weatherService = "weatherapi"; // openmateo or weatherapi
 
-    @Fields.string()
-    weatherApiKey = "";
-
-    @Fields.string()
-    weatherLocation = ""; // City name or coordinates (lat, lon);
-
     @Fields.number()
     weatherUpdateInterval = 15; // Interval in minutes for weather updates
 
@@ -93,5 +87,8 @@ export class SystemSettings {
 
     @Fields.json()
     sensors: SensorSettings[] = [];
+
+    @Fields.number()
+    historySnapshotInterval = 60; // Interval in seconds for saving system status snapshots
 
 }

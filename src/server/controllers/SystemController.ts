@@ -6,6 +6,7 @@ import { WeatherController } from './WeatherController';
 import { ProgramController } from './ProgramController';
 import { ZoneController } from './ZoneController';
 import { SensorController } from './SensorController';
+import { HistoryController } from './HistoryController';
 
 export const systemStatusRepo = repo(SystemStatus);
 
@@ -61,7 +62,8 @@ export class SystemController {
     @BackendMethod({ allowed: true, apiPrefix: 'system' })
     static async update() {
         console.log('Updating weather and statistics');
-        WeatherController.RetrieveWeather(false);
+        await WeatherController.RetrieveWeather(false);
+        await HistoryController.saveSnapshot();
         return "Update Completed Successfully";
     }
 

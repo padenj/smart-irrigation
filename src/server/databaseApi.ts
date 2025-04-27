@@ -1,6 +1,6 @@
 import { remultExpress } from "remult/remult-express";
 import { Zone } from "../shared/zones.js";
-import { SystemStatus } from "../shared/systemStatus.js";
+import { SystemStatus, SystemStatusSnapshot } from "../shared/systemStatus.js";
 import { Program } from "../shared/programs.js";
 import { SystemSettings } from "../shared/systemSettings.js";
 import { SystemController } from "./controllers/SystemController.js";
@@ -15,7 +15,7 @@ import { SensorController } from "./controllers/SensorController.js";
 import ADS1115Wrapper from "./hardware/sensors.js";
 
 export const api = remultExpress({
-    entities: [Zone, SystemStatus, Program, SystemSettings, SystemLog],
+    entities: [Zone, SystemStatus, Program, SystemSettings, SystemLog, SystemStatusSnapshot],
     initApi: async (remult) => {
         const systemStatusRepo = remult.repo(SystemStatus);
         const systemSettingsRepo = remult.repo(SystemSettings);

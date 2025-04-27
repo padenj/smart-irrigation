@@ -24,7 +24,7 @@ export const StatusProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     useEffect(() => {
         fetchStatus();
-        const interval = setInterval(fetchStatus, 3000); // Update every 10 seconds
+        const interval = setInterval(fetchStatus, 3000); 
         return () => clearInterval(interval);
     }, []);
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import { ZoneManager } from './pages/ZoneManager';
 import { Dashboard } from './pages/Dashboard';
 import { SystemLogs } from './pages/SystemLogs';
@@ -10,6 +9,7 @@ import { SettingsProvider } from './hooks/SettingsContext';
 import { VersionDisplay } from './components/VersionDisplay';
 import { InstallButton } from './components/InstallAppButton';
 import { BrowserRouter as Router, Route, Routes, NavLink } from 'react-router-dom';
+import HistoricalStatusPage from './pages/HistoricalStatus';
 
 function App() {
   return (
@@ -84,6 +84,19 @@ function App() {
                 >
                   Settings
                 </NavLink>
+
+                <NavLink
+                  to="/history"
+                  className={({ isActive }) =>
+                    `px-3 py-2 text-sm font-medium ${
+                      isActive
+                        ? 'border-b-2 border-blue-500 text-blue-600'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`
+                  }
+                >
+                  History
+                </NavLink>
               </div>
             </div>
           </nav>
@@ -99,6 +112,7 @@ function App() {
                 <Route path="/programs" element={<ProgramManager />} />
                 <Route path="/logs" element={<SystemLogs />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/history" element={<HistoricalStatusPage />} />
                 <Route path="*" element={<Dashboard />} />
               </Routes>
           </main>

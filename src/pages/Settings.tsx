@@ -196,6 +196,13 @@ const GeneralSettings = ({ settings, onChange }: { settings: SystemSettings; onC
         value={settings.measurementUnit}
         onChange={(value) => onChange('measurementUnit', value)}
       />
+      <SettingInput
+        label="History Snapshot Interval (minutes)"
+        type="number"
+        value={settings.historySnapshotInterval || ''}
+        onChange={(value) => onChange('historySnapshotInterval', value)}
+        placeholder="Enter interval in minutes"
+      />
     </div>
   </div>
 );

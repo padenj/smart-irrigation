@@ -11,12 +11,26 @@ export interface SensorData {
   lastUpdated: string | null;
 }
 
+@Entity("systemStatusSnapshot", {
+  allowApiCrud: true
+})
+export class SystemStatusSnapshot {
+  @Fields.uuid()
+  id!: string;
+
+  @Fields.string()
+  timestamp: string = '';
+
+  @Fields.json()
+  systemStatus: SystemStatus | null = null;
+}
+
 @Entity("systemStatus", {
   allowApiCrud: true
 })
 export class SystemStatus {
     @Fields.number()
-    id: number = 0;
+    id: number = 0; 
 
     @Relations.toOne(() => Zone, {
       defaultIncluded: true, 

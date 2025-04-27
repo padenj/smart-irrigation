@@ -29,7 +29,12 @@ app.get('/api/version', (req, res) => {
 
 // Catch-all: serve index.html for unmatched routes (SPA fallback)
 if (process.env.NODE_ENV === 'production') {
-  app.get('*', (_, res) => {
+  app.get('*', (req, res) => {
+    // If the request starts with /api, skip
+    if (req.path.startsWith('/api')) {
+      res.status(404).json({ error: 'API route not found' });
+      return;
+    }
     res.sendFile(path.join(process.cwd(), 'build/dist', 'index.html'));
   });
 }

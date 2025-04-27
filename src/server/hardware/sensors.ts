@@ -35,10 +35,10 @@ class ADS1115Wrapper implements IAtoDController {
             try {
                 const busNumber = 1; // Default I2C bus number
                 this.bus = await openPromisified(busNumber);
-                console.log(`I2C bus ${busNumber} opened`, this.bus);
+                //console.log(`I2C bus ${busNumber} opened`, this.bus);
                 const address = settings ? settings.analogDigitalAddress : 0x48; // Default address // Retrieve address from Settings
                 this.ads1115 = await ADS1115(this.bus, address);
-                console.log(`ADS1115 initialized at address ${address}`, this.ads1115);
+                console.log(`ADS1115 initialized at address ${address}`);
             } catch (error) {
                 console.error('Error initializing ADS1115:', error);
                 throw error;

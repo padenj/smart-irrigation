@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 
 import { DownloadOutlined } from "@ant-design/icons";
+
+import type { ColumnsType } from "antd/es/table";
 import dayjs, { Dayjs } from "dayjs";
 import { Line } from "react-chartjs-2";
 import { Chart, registerables } from "chart.js";
@@ -40,13 +42,17 @@ const [selectedValues, setSelectedValues] = useState<string[]>([]);
 const [timeRange, setTimeRange] = useState(defaultTimeRange);
 const [customRange, setCustomRange] = useState<[Dayjs, Dayjs] | null>(null);
 const [weatherService, setWeatherService] = useState<string | undefined>();
+const [sortDirection, setSortDirection] = useState<"desc" | "asc">(
+    () => (localStorage.getItem("historicalStatus.sortDirection") as "asc" | "desc") || "desc"
+);
 
 const systemSettings = useSettingsContext();
 
-// Load selectedValues from localStorage on mount
+// Load selectedValues and sortDirection from localStorage on mount
 useEffect(() => {
     const storedValues = localStorage.getItem("historicalStatus.selectedValues");
     const storedTimeRange = localStorage.getItem("historicalStatus.timeRange");
+    const storedSortDirection = localStorage.getItem("historicalStatus.sortDirection");
     if (storedTimeRange) {
         try {
             const parsed = JSON.parse(storedTimeRange);
@@ -60,6 +66,9 @@ useEffect(() => {
             const parsed = JSON.parse(storedValues);
             if (Array.isArray(parsed)) setSelectedValues(parsed);
         } catch {}
+    }
+    if (storedSortDirection === "asc" || storedSortDirection === "desc") {
+        setSortDirection(storedSortDirection);
     }
 }, []);
 
@@ -85,7 +94,6 @@ useEffect(() => {
         to = DateTime.now().setZone(tz).toJSDate();
         from = DateTime.now().setZone(tz).minus({ [timeRange.unit]: timeRange.value }).toJSDate();
     }
-    console.log("Fetching snapshots from", from, "to", to);
     remult.repo(SystemStatusSnapshot)
         .find({
             where: {
@@ -124,14 +132,20 @@ const valueOptions: ValueOption[] = [
     ...weatherOptions,
 ];
 
-// Prepare chart data
+// Prepare chart data (always oldest to newest)
+const chartSnapshots = snapshots.slice().sort((a, b) =>
+    new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+);
+
 const chartData = {
-    labels: snapshots.map((s) => DateTimeUtils.isoToDateTimeShortStr(s.timestamp, systemSettings.timezone)),
+    labels: chartSnapshots.map((s) =>
+        DateTimeUtils.isoToDateTimeShortStr(s.timestamp, systemSettings.timezone)
+    ),
     datasets: selectedValues
         .filter((key) => key !== "weather.condition")
         .map((key, idx) => {
             let label = valueOptions.find((v) => v.key === key)?.label || key;
-            let data = snapshots.map((snap) => {
+            let data = chartSnapshots.map((snap) => {
                 if (key.startsWith("sensor.")) {
                     return snap.systemStatus?.sensorData[key.replace("sensor.", "")]?.convertedValue ?? null;
                 }
@@ -151,12 +165,14 @@ const chartData = {
 };
 
 // Prepare table columns
-const columns = [
+const columns: ColumnsType<any> = [
     {
         title: "Time",
         dataIndex: "createdAt",
         render: (v: string) => dayjs(v).format("YYYY-MM-DD HH:mm"),
         fixed: "left" as const,
+        sorter: (a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        sortOrder: (sortDirection === "desc" ? "descend" : "ascend") as "ascend" | "descend" | undefined,
     },
     ...selectedValues.map((key) => {
         let label = valueOptions.find((v) => v.key === key)?.label || key;
@@ -169,34 +185,41 @@ const columns = [
 ];
 
 // Prepare table data
-const tableData = snapshots.map((snap) => {
-    const row: any = { key: snap.id, createdAt: snap.timestamp };
-    selectedValues.forEach((key) => {
-        if (key.startsWith("sensor.")) {
-            const sensorName = key.replace("sensor.", "");
-            const sensorData = snap.systemStatus?.sensorData[sensorName];
-            row[key] = sensorData
-                ? sensorData.convertedValue !== undefined && sensorData.unit
-                    ? `${Number(sensorData.convertedValue).toFixed(2)}${sensorData.unit}`
-                    : sensorData.convertedValue !== undefined
-                        ? Number(sensorData.convertedValue).toFixed(2)
-                        : undefined
-                : undefined;
-        } else if (key === "weather.temperature") {
-            row[key] = snap.systemStatus?.weatherData?.current?.temperature;
-        } else if (key === "weather.high") {
-            row[key] = snap.systemStatus?.weatherData?.forecast?.today?.temperatureHigh;
-        } else if (key === "weather.low") {
-            row[key] = snap.systemStatus?.weatherData?.forecast?.today?.temperatureLow;
-        } else if (key === "weather.condition") {
-            row[key] =
-            snap.systemStatus?.weatherData?.service === weatherService
-                ? snap.systemStatus?.weatherData?.current?.conditionText
-                : undefined;
-        }
+const tableData = snapshots
+    .slice()
+    .sort((a, b) =>
+        sortDirection === "desc"
+            ? new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            : new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    )
+    .map((snap) => {
+        const row: any = { key: snap.id, createdAt: snap.timestamp };
+        selectedValues.forEach((key) => {
+            if (key.startsWith("sensor.")) {
+                const sensorName = key.replace("sensor.", "");
+                const sensorData = snap.systemStatus?.sensorData[sensorName];
+                row[key] = sensorData
+                    ? sensorData.convertedValue !== undefined && sensorData.unit
+                        ? `${Number(sensorData.convertedValue).toFixed(2)}${sensorData.unit}`
+                        : sensorData.convertedValue !== undefined
+                            ? Number(sensorData.convertedValue).toFixed(2)
+                            : undefined
+                    : undefined;
+            } else if (key === "weather.temperature") {
+                row[key] = snap.systemStatus?.weatherData?.current?.temperature;
+            } else if (key === "weather.high") {
+                row[key] = snap.systemStatus?.weatherData?.forecast?.today?.temperatureHigh;
+            } else if (key === "weather.low") {
+                row[key] = snap.systemStatus?.weatherData?.forecast?.today?.temperatureLow;
+            } else if (key === "weather.condition") {
+                row[key] =
+                snap.systemStatus?.weatherData?.service === weatherService
+                    ? snap.systemStatus?.weatherData?.current?.conditionText
+                    : undefined;
+            }
+        });
+        return row;
     });
-    return row;
-});
 
 // Export to CSV
 const exportCSV = () => {
@@ -284,6 +307,18 @@ return (
             >
             Reset Range
             </Button>
+            <Select
+                value={sortDirection}
+                style={{ width: 180 }}
+                onChange={(v) => {
+                    setSortDirection(v);
+                    localStorage.setItem("historicalStatus.sortDirection", v);
+                }}
+                options={[
+                    { value: "desc", label: "Newest to Oldest" },
+                    { value: "asc", label: "Oldest to Newest" },
+                ]}
+            />
             <Button
             icon={<DownloadOutlined />}
             onClick={exportCSV}

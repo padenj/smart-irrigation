@@ -238,7 +238,7 @@ export class ProgramController {
 
         const programToRun = programs.find((program) => {
             if (!program.isEnabled) {
-                console.log(`Skipping disabled program ${program.name}`);
+                //console.log(`Skipping disabled program ${program.name}`);
                 return false;
             }
             if (program.nextScheduledRunTime) {

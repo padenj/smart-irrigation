@@ -24,7 +24,7 @@ export class DisplayController {
             if (!time) {
                 return 'N/A';
             }
-            console.log(`Time: ${time}`);
+            //console.log(`Time: ${time}`);
             const [hours, minutes, period] = time.match(/(\d+):(\d+)\s*(AM|PM)/i)!.slice(1);
             return `${parseInt(hours, 10)}:${minutes}${period.toLowerCase()}`;
         };

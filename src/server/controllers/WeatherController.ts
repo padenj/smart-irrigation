@@ -30,7 +30,7 @@ export class WeatherController {
 
             const serviceSettings = settings.weatherServiceSettings[settings.weatherService as keyof typeof settings.weatherServiceSettings];
             if (serviceSettings && minutesSinceLastUpdate < serviceSettings.updateInterval) {
-            console.log('Weather update not required');
+            //console.log('Weather update not required');
             return;
             }
         }

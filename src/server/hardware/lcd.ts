@@ -125,7 +125,9 @@ class LCDManager implements ILCDManager {
         // If the current page is being displayed, update the LCD
         if (pageIndex === this.currentPageIndex) {
             this.lcd.printLineSync(lineIndex, updatedLine);
-            console.log(`Inserting text into LCD p${pageIndex}:l${lineIndex} '${updatedLine}'`);
+            if (this.isMocked) {
+                console.log(`Inserting text into LCD p${pageIndex}:l${lineIndex} '${updatedLine}'`);
+            }
         }
     }
 
@@ -149,7 +151,9 @@ class LCDManager implements ILCDManager {
         }
         this.currentPageIndex = pageNum;
         const page = this.pages[pageNum];
-        console.log('Cycling to page:', pageNum, page);
+        if (this.isMocked) {
+            console.log('Cycling to page:', pageNum, page);
+        }
         this.lcd.clearSync();
         page.forEach((line, index) => {
             this.lcd.printLineSync(index, line);

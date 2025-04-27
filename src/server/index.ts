@@ -27,6 +27,14 @@ app.get('/api/version', (req, res) => {
   res.json({ version: appVersion });
 });
 
+// Catch-all: serve index.html for unmatched routes (SPA fallback)
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (_, res) => {
+    res.sendFile(path.join(process.cwd(), 'build/dist', 'index.html'));
+  });
+}
+
+
 app.listen(port, () => console.log(`Started ${appVersion} on port ${port}`));
 
 // Run the system initialization

@@ -10,6 +10,7 @@ import { VersionDisplay } from './components/VersionDisplay';
 import { InstallButton } from './components/InstallAppButton';
 import { BrowserRouter as Router, Route, Routes, NavLink } from 'react-router-dom';
 import HistoricalStatusPage from './pages/HistoricalStatus';
+import NotFound from './NotFound';
 
 function App() {
   return (
@@ -113,7 +114,7 @@ function App() {
                 <Route path="/logs" element={<SystemLogs />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/history" element={<HistoricalStatusPage />} />
-                <Route path="*" element={<Dashboard />} />
+                <Route path="*" element={<NotFound />} />
               </Routes>
           </main>
 

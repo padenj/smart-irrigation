@@ -45,7 +45,7 @@ export class HistoryController {
             }
         }
 
-        console.log('Saving system status snapshot');
+        //console.log('Saving system status snapshot');
         const snapshot = snapshotRepo.create({
             timestamp: DateTimeUtils.toISODateTime(new Date(), settings.timezone) ?? "",
             systemStatus: JSON.parse(JSON.stringify(systemStatus)), // deep copy

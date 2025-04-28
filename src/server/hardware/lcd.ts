@@ -1,12 +1,9 @@
 import LCD from 'raspberrypi-liquid-crystal';
 import dotenv from 'dotenv';
 import { ILCDManager } from '../types/hardware';
-import { SystemSettings } from '../../shared/systemSettings';
+import { LCDSettings } from '../../shared/systemSettings';
 dotenv.config({ path: '.env.local' });
 
-const LCD_ROWS = 4;
-const LCD_COLS = 20;
-const LCD_PAGE_CYCLE_TIME = 20000; // 20 seconds
 const MOCK_LCD = {
     clearSync: () => {},
     setCursor: (_col: number, _row: number) => {},
@@ -17,24 +14,40 @@ const MOCK_LCD = {
 class LCDManager implements ILCDManager {
     private static instance: LCDManager;
     private lcd: LCD;
-    private pages: string[][] = [];
-    private currentPageIndex: number = -1;
-    private isMocked: boolean;
+    private maxColumns = 20;
+    private maxRows = 4;
+
+    isMocked: boolean;
 
     private constructor() {
         this.isMocked = process.env.MOCK_HARDWARE === 'true';
         this.lcd = MOCK_LCD;
     }
 
-    public async initialize(settings?: SystemSettings): Promise<void> {
+    public async initialize(settings: LCDSettings): Promise<void> {
+        
         if (this.isMocked) {
             this.lcd = MOCK_LCD;
             console.log('Mock LCD initialized');
         } else {
             try {
-                const address = settings ? settings.lcdAddress : 0x27; // Default address // Retrieve address from Settings
-            
-                this.lcd = new LCD(1, address, LCD_COLS, LCD_ROWS);
+                const address = settings.i2cAddress;
+                
+                if (address < 0x20 || address > 0x27) {
+                    console.error(`Invalid I2C address: ${address}. Must be between 0x20 and 0x27.`);
+                    return;
+                }
+
+                this.maxColumns = settings.cols ?? 20;
+                this.maxRows = settings.rows ?? 4;
+
+                this.lcd = new LCD(
+                    1,
+                    address,
+                    this.maxColumns,
+                    this.maxRows
+                );
+                
                 this.lcd.beginSync();
                 this.lcd.clearSync();
                 this.lcd.printLineSync(0, 'LCD Initialized');
@@ -50,9 +63,9 @@ class LCDManager implements ILCDManager {
             }
         }
 
-        this.getPage(0); // Ensure the first page is initialized
-        this.startCycling();
-        this.setPage(0);
+        // this.getPage(0); // Ensure the first page is initialized
+        // this.startCycling();
+        // this.setPage(0);
         
     }
 
@@ -63,102 +76,16 @@ class LCDManager implements ILCDManager {
         return LCDManager.instance;
     }
 
-
-    removePage(pageIndex: number): void {
-        if (pageIndex < 0 || pageIndex >= this.pages.length) {
-            console.log(`Invalid page index ${pageIndex}.`);
-            return;
+    async writeLine(lineIndex: number, text: string): Promise<void> {
+        if (!this.lcd) {
+            throw new Error('LCD is not initialized');
         }
-        this.pages.splice(pageIndex, 1);
+        this.lcd.printLineSync(lineIndex, text);
     }
 
-    getPage(pageIndex: number): string[] | null {
-        if (pageIndex < 0) {
-            console.log(`Invalid page index ${pageIndex}.`);
-            return null;
-        }
+    
 
-        if (pageIndex >= this.pages.length) {
-            while (this.pages.length <= pageIndex) {
-                this.pages.push(new Array(LCD_ROWS).fill(''.padEnd(LCD_COLS, ' ')));
-            }
-        }
 
-        return this.pages[pageIndex];
-    }
-
-    writeLine(pageIndex: number, lineIndex: number, text: string): void {
-        const paddedText = text.padEnd(LCD_COLS, ' ');
-        this.insertText(pageIndex, lineIndex, 0, paddedText); // Insert at the beginning
-    }
-
-    insertText(pageIndex: number, lineIndex: number, position: number, text: string): void {
-        if (position < 0 || position >= LCD_COLS) {
-            console.log('Invalid position.');
-            return;
-        }
-
-        const page = this.getPage(pageIndex); // Ensure the page exists
-
-        if (!page) {
-            console.log(`Page ${pageIndex} does not exist.`);
-            return;
-        }
-
-        if (lineIndex < 0 || lineIndex >= LCD_ROWS) {
-            console.log(`Invalid line index ${lineIndex}.`);
-            return;
-        }
-
-        const currentLine = page[lineIndex];
-        const updatedLine = 
-            (currentLine.slice(0, position) + 
-            text + 
-            currentLine.slice(position + text.length)).slice(0, LCD_COLS);
-
-        if (currentLine === updatedLine) {
-            return;
-        }
-
-        page[lineIndex] = updatedLine; // Update the page array
-
-        // If the current page is being displayed, update the LCD
-        if (pageIndex === this.currentPageIndex) {
-            this.lcd.printLineSync(lineIndex, updatedLine);
-            if (this.isMocked) {
-                console.log(`Inserting text into LCD p${pageIndex}:l${lineIndex} '${updatedLine}'`);
-            }
-        }
-    }
-
-    clearLine(pageIndex: number, lineIndex: number): void {
-        this.writeLine(pageIndex, lineIndex, '');
-    }
-
-    startCycling(): void {
-        setInterval(() => {
-            if (this.pages.length === 0) return;
-            const nextPage = (this.currentPageIndex + 1) % this.pages.length;
-            if (this.currentPageIndex === nextPage) return;
-            this.setPage(nextPage);
-        }, LCD_PAGE_CYCLE_TIME);
-    }
-
-    private setPage(pageNum: number): void {
-        if (pageNum < 0 || pageNum >= this.pages.length) {
-            console.log('Cannot set page, invalid page number.');
-            return;
-        }
-        this.currentPageIndex = pageNum;
-        const page = this.pages[pageNum];
-        if (this.isMocked) {
-            console.log('Cycling to page:', pageNum, page);
-        }
-        this.lcd.clearSync();
-        page.forEach((line, index) => {
-            this.lcd.printLineSync(index, line);
-        });
-    }
 }
 
 export default await LCDManager.getInstance();

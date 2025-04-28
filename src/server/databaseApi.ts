@@ -13,9 +13,10 @@ import { SystemLog } from "../shared/systemLog.js";
 import { LogController } from "./controllers/LogController.js";
 import { SensorController } from "./controllers/SensorController.js";
 import ADS1115Wrapper from "./hardware/sensors.js";
+import { LcdPage } from "../shared/lcdPages.js";
 
 export const api = remultExpress({
-    entities: [Zone, SystemStatus, Program, SystemSettings, SystemLog, SystemStatusSnapshot],
+    entities: [Zone, SystemStatus, Program, SystemSettings, SystemLog, SystemStatusSnapshot, LcdPage],
     initApi: async (remult) => {
         const systemStatusRepo = remult.repo(SystemStatus);
         const systemSettingsRepo = remult.repo(SystemSettings);

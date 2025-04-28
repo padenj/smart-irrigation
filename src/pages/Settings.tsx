@@ -234,12 +234,42 @@ const HardwareSettings = ({ settings, onChange }: { settings: SystemSettings; on
     <div className="space-y-6">
       <h2 className="text-lg font-medium text-gray-900">Hardware Configuration</h2>
       <div className="space-y-4">
-        <SettingHexInput
-          label="LCD Display I2C Address"
-          value={settings.lcdAddress}
-          onChange={(value) => onChange('lcdAddress', value)}
-          placeholder="0x27"
-        />
+        <h3 className="text-md font-semibold text-gray-700 mb-2">LCD</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border bg-blue-50 p-4 rounded-md">
+          <div>
+            <SettingHexInput
+              label="LCD Display I2C Address"
+              value={settings.lcdSettings?.i2cAddress}
+              onChange={(value) => onChange('lcdSettings.i2cAddress', value)}
+              placeholder="0x27"
+            />
+            <SettingInput
+              label="LCD Page Cycle Time (seconds)"
+              type="number"   
+              value={settings.lcdSettings?.pageCycleTimeSeconds}
+              onChange={(value) => onChange('lcdSettings.pageCycleTimeSeconds', value)}
+              placeholder="Enter page cycle time in seconds"
+            />
+          </div>
+          <div>
+            <SettingInput
+              label="LCD Rows"
+              type="number"
+              value={settings.lcdSettings?.rows || ''}
+              onChange={(value) => onChange('lcdSettings.rows', value)}
+              placeholder="Enter number of rows"
+            />  
+            <SettingInput
+              label="LCD Columns"
+              type="number"
+              value={settings.lcdSettings?.cols || ''}
+              onChange={(value) => onChange('lcdSettings.cols', value)}
+              placeholder="Enter number of columns"
+            />
+          </div>
+        </div>
+        <hr className="my-6 border-t border-gray-300" />
+        <h3 className="text-md font-semibold text-gray-700 mb-2">Sensors</h3>
         <SettingHexInput
           label="Analog Digital Converter I2C Address"
           value={settings.analogDigitalAddress}
@@ -256,8 +286,8 @@ const HardwareSettings = ({ settings, onChange }: { settings: SystemSettings; on
         <div className="space-y-4">
           <h3 className="text-md font-medium text-gray-800">Sensors</h3>
           {settings.sensors?.map((sensor, index) => (
-            <>
-              <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4 border bg-blue-50 p-4 rounded-md">
+            <div key={index}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border bg-blue-50 p-4 rounded-md">
                 <div>
                   <SettingInput
                     label="Sensor Name"
@@ -355,7 +385,7 @@ const HardwareSettings = ({ settings, onChange }: { settings: SystemSettings; on
                   Remove Sensor
                 </button>
               </div>
-            </>
+            </div>
           ))}
           <button
             onClick={() => {

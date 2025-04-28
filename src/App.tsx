@@ -11,6 +11,7 @@ import { InstallButton } from './components/InstallAppButton';
 import { BrowserRouter as Router, Route, Routes, NavLink } from 'react-router-dom';
 import HistoricalStatusPage from './pages/HistoricalStatus';
 import NotFound from './NotFound';
+import Display from './pages/Display';
 
 function App() {
   return (
@@ -114,6 +115,7 @@ function App() {
                 <Route path="/logs" element={<SystemLogs />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/history" element={<HistoricalStatusPage />} />
+                <Route path="/display" element={<Display />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
           </main>

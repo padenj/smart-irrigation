@@ -48,8 +48,9 @@ export class SystemController {
             console.log('System settings not found, cannot initialize system');
             return "System settings not found";
         }
+        await DisplayController.initialize();
         SensorController.initializeSensors(systemSettings);
-        DisplayController.initialize(systemSettings);
+       
         WeatherController.RetrieveWeather(true);
         DisplayController.setTime(systemSettings?.timezone|| 'UTC');
         ProgramController.stopActiveProgram();

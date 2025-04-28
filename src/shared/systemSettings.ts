@@ -19,6 +19,13 @@ export interface SensorSettings {
     inverted: boolean,
 }
 
+export interface LCDSettings {
+    rows: number;
+    cols: number;
+    pageCycleTimeSeconds: number; // Time in milliseconds to cycle through LCD pages
+    i2cAddress: number; // I2C address for the AtoD converter
+}
+
 @Entity("settings", {
     allowApiCrud: true
 })
@@ -67,14 +74,12 @@ export class SystemSettings {
         }
     };
     
-    @Fields.number()
-    analogDigitalAddress = 0x48; // I2C address for the AtoD converter
 
     @Fields.number()
     sensorReferenceVoltage = 3.3; // Voltage reference for the AtoD converter
 
     @Fields.number()
-    lcdAddress = 0x27; // I2C address for the LCD display
+    analogDigitalAddress = 0x48; // I2C address for the LCD display
 
     @Fields.json()
     sensors: SensorSettings[] = [];
@@ -82,4 +87,11 @@ export class SystemSettings {
     @Fields.number()
     historySnapshotInterval = 60; // Interval in seconds for saving system status snapshots
 
+    @Fields.json()
+    lcdSettings: LCDSettings = {
+        rows: 4,
+        cols: 20,
+        pageCycleTimeSeconds: 20, // Time in seconds to cycle through LCD pages
+        i2cAddress: 0x48 // I2C address for the AtoD converter
+    };
 }

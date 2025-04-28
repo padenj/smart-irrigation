@@ -32,7 +32,7 @@ export class DisplayController {
             settings.lcdSettings = {
                 rows: 4,
                 cols: 20,
-                pageCycleTimeSeconds: 20000, // Default to 20 seconds
+                pageCycleTimeSeconds: 20, // Default to 20 seconds
                 i2cAddress: 0x27 // Default I2C address
             };
             await this.settingsRepository.save(settings);

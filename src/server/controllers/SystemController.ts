@@ -7,6 +7,8 @@ import { ProgramController } from './ProgramController';
 import { ZoneController } from './ZoneController';
 import { SensorController } from './SensorController';
 import { HistoryController } from './HistoryController';
+import { LogController } from './LogController';
+import path from 'path';
 
 export const systemStatusRepo = repo(SystemStatus);
 
@@ -55,7 +57,13 @@ export class SystemController {
         DisplayController.setTime(systemSettings?.timezone|| 'UTC');
         ProgramController.stopActiveProgram();
         ZoneController.stopAllZones();
-        
+        try {
+            const fs = await import('fs/promises');
+            const version = await fs.readFile(path.join(process.cwd()+'/build/dist', 'version.txt'), 'utf-8');
+            LogController.writeLog(`Smart Irrigation version ${version.trim()} started`, "WARNING");
+        } catch (error) {
+            LogController.writeLog(`Error reading system version: ${error}`);
+        }
         return "Initialization Completed Successfully";
     }
 

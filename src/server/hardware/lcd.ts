@@ -80,7 +80,15 @@ class LCDManager implements ILCDManager {
         if (!this.lcd) {
             throw new Error('LCD is not initialized');
         }
-        this.lcd.printLineSync(lineIndex, text);
+        try {
+            await this.lcd.printLine(lineIndex, text);
+        } catch (error) {
+            if (error instanceof Error) {
+                console.error(`Error writing to LCD: ${error.message}`);
+            } else {
+                console.error('Unknown error writing to LCD');
+            }
+        }
     }
 
     

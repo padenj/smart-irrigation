@@ -41,10 +41,17 @@ export async function fetchWeather(): Promise<WeatherData|null> {
     const currentWeatherUrl = `https://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${location}`;
     const forecastWeatherUrl = `https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${location}&days=2`;
 
-    const [currentResponse, forecastResponse] = await Promise.all([
-        axios.get(currentWeatherUrl),
-        axios.get(forecastWeatherUrl),
-    ]);
+    let currentResponse, forecastResponse;
+    try {
+        [currentResponse, forecastResponse] = await Promise.all([
+            axios.get(currentWeatherUrl),
+            axios.get(forecastWeatherUrl),
+        ]);
+    } catch (error: any) {
+        console.error('Error fetching weather data:', error);
+        LogController.writeLog(`Error fetching weather data: ${error.message || error}`, 'ERROR');
+        return null;
+    }
 
     const currentData = currentResponse.data;
     const forecastData = forecastResponse.data;

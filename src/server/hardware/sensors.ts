@@ -3,6 +3,7 @@ import ADS1115 from 'ads1115';
 import { SystemSettings } from '../../shared/systemSettings';
 import dotenv from 'dotenv';
 import { IAtoDController } from '../types/hardware';
+import { i2cMutex } from './i2cLock';
 dotenv.config({ path: '.env.local' });
 
 class ADS1115Wrapper implements IAtoDController {
@@ -34,11 +35,13 @@ class ADS1115Wrapper implements IAtoDController {
         } else {
             try {
                 const busNumber = 1; // Default I2C bus number
-                this.bus = await openPromisified(busNumber);
-                //console.log(`I2C bus ${busNumber} opened`, this.bus);
-                const address = settings ? settings.analogDigitalAddress : 0x48; // Default address // Retrieve address from Settings
-                this.ads1115 = await ADS1115(this.bus, address);
-                console.log(`ADS1115 initialized at address ${address}`);
+                await i2cMutex.runExclusive(async () => {
+                    this.bus = await openPromisified(busNumber);
+                    //console.log(`I2C bus ${busNumber} opened`, this.bus);
+                    const address = settings ? settings.analogDigitalAddress : 0x48; // Default address // Retrieve address from Settings
+                    this.ads1115 = await ADS1115(this.bus, address);
+                    console.log(`ADS1115 initialized at address ${address}`);
+                });
             } catch (error) {
                 console.error('Error initializing ADS1115:', error);
                 throw error;
@@ -51,16 +54,19 @@ class ADS1115Wrapper implements IAtoDController {
             throw new Error('ADS1115 is not initialized');
         }
 
-        const channel = `${sensorIndex}+GND`;
-        const rawValue = await this.ads1115.measure(channel);
-
-        return rawValue + this.calibrationValue;
+        return await i2cMutex.runExclusive(async () => {
+            const channel = `${sensorIndex}+GND`;
+            const rawValue = await this.ads1115.measure(channel);
+            return rawValue + this.calibrationValue;
+        });
     }
 
     public async dispose() {
         if (this.bus) {
-            await this.bus.close();
-            this.bus = null;
+            await i2cMutex.runExclusive(async () => {
+                await this.bus!.close();
+                this.bus = null;
+            });
         }
         ADS1115Wrapper.instance = null;
     }

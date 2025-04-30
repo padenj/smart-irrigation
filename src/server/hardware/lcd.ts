@@ -2,6 +2,7 @@ import LCD from 'raspberrypi-liquid-crystal';
 import dotenv from 'dotenv';
 import { ILCDManager } from '../types/hardware';
 import { LCDSettings } from '../../shared/systemSettings';
+import { i2cMutex } from './i2cLock';
 dotenv.config({ path: '.env.local' });
 
 const MOCK_LCD = {
@@ -9,6 +10,7 @@ const MOCK_LCD = {
     setCursor: (_col: number, _row: number) => {},
     printSync: (_text: string) => {},
     printLineSync: (_line: number, _text: string) => {},
+    printLine: async (_line: number, _text: string) => {},
 } as unknown as LCD;
 
 class LCDManager implements ILCDManager {
@@ -16,7 +18,7 @@ class LCDManager implements ILCDManager {
     private lcd: LCD;
     private maxColumns = 20;
     private maxRows = 4;
-
+    private settings?: LCDSettings;
     isMocked: boolean;
 
     private constructor() {
@@ -25,7 +27,7 @@ class LCDManager implements ILCDManager {
     }
 
     public async initialize(settings: LCDSettings): Promise<void> {
-        
+        this.settings = settings;
         if (this.isMocked) {
             this.lcd = MOCK_LCD;
             console.log('Mock LCD initialized');
@@ -41,16 +43,18 @@ class LCDManager implements ILCDManager {
                 this.maxColumns = settings.cols ?? 20;
                 this.maxRows = settings.rows ?? 4;
 
-                this.lcd = new LCD(
-                    1,
-                    address,
-                    this.maxColumns,
-                    this.maxRows
-                );
-                
-                this.lcd.beginSync();
-                this.lcd.clearSync();
-                this.lcd.printLineSync(0, 'LCD Initialized');
+                await i2cMutex.runExclusive(async () => {
+                    this.lcd = new LCD(
+                        1,
+                        address,
+                        this.maxColumns,
+                        this.maxRows
+                    );
+                    
+                    this.lcd.beginSync();
+                    this.lcd.clearSync();
+                    this.lcd.printLineSync(0, 'LCD Initialized');
+                });
                 console.log('LCD initialized');
             } catch (error) {
                 if (error instanceof Error) {
@@ -78,15 +82,29 @@ class LCDManager implements ILCDManager {
 
     async writeLine(lineIndex: number, text: string): Promise<void> {
         if (!this.lcd) {
-            throw new Error('LCD is not initialized');
+            console.log('LCD is not initialized');
+            return;
         }
         try {
-            await this.lcd.printLine(lineIndex, text);
+            await i2cMutex.runExclusive(async () => {
+                await this.lcd.printLine(lineIndex, text);
+            });
         } catch (error) {
-            if (error instanceof Error) {
-                console.error(`Error writing to LCD: ${error.message}`);
-            } else {
-                console.error('Unknown error writing to LCD');
+            console.error(`Error writing to LCD: ${error instanceof Error ? error.message : error}`);
+        // Try to re-initialize the LCD
+             try {
+                if (this.settings) {
+                    await this.initialize(this.settings);
+                    await i2cMutex.runExclusive(async () => {
+                        await this.lcd.printLine(lineIndex, text);
+                    });
+                } else {
+                    console.error('Cannot re-initialize LCD: settings are undefined');
+                    this.lcd = MOCK_LCD;
+                }
+            } catch (reinitError) {
+                console.error('Failed to re-initialize LCD:', reinitError);
+                this.lcd = MOCK_LCD;
             }
         }
     }

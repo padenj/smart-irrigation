@@ -23,7 +23,7 @@
     "express": "^5.1.0",
     "file-saver": "^2.0.5",
     "i2c-bus": "^5.2.3",
-    "lucide-react": "^0.344.0",
+    "lucide-react": "^0.509.0",
     "luxon": "^3.6.1",
     "node-cron": "^3.0.3",
     "pigpio": "^3.3.1",

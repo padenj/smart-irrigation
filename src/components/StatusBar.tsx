@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSettingsContext } from '../hooks/SettingsContext';
 import { useStatusContext } from '../hooks/StatusContext';
-import { Wifi } from 'lucide-react';
+import { Wifi, WifiOff, WifiHigh, WifiLow, WifiZero  } from 'lucide-react';
 
 const Status: React.FC = () => {
     const systemStatus = useStatusContext();
@@ -12,7 +12,7 @@ const Status: React.FC = () => {
         const fetchWifiSignal = () => {
             fetch('/api/wifi-signal')
             .then(res => res.json())
-            .then(data => setWifiSignal(data.signalStrength))
+            .then(data => setWifiSignal(data.signal))
             .catch(() => setWifiSignal(null));
         };
 
@@ -39,7 +39,15 @@ const Status: React.FC = () => {
                 <div style={{ alignSelf: 'flex-end', textAlign: 'right' }}>{new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</div>
                 <div style={{ alignSelf: 'flex-end', textAlign: 'right' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Wifi size={16} /> {wifiSignal !== null && wifiSignal !== undefined ? `${wifiSignal} dBm` : '...'}
+                    {wifiSignal === null || wifiSignal === undefined ? (
+                        <WifiOff size={16} />
+                    ) : wifiSignal >= -60 ? (
+                        <WifiHigh size={16} />
+                    ) : wifiSignal >= -75 ? (
+                        <WifiLow size={16} />
+                    ) : (
+                        <WifiZero size={16} />
+                    )}
                 </span>
                 </div>
             </div>

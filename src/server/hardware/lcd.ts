@@ -42,9 +42,9 @@ class LCDManager implements ILCDManager {
                 this.maxRows = settings.rows ?? 4;
 
                 await i2cMutex.runExclusive(async () => {
-                    if (this.lcd) {
-                        await (this.lcd as any).close();
-                    }
+                    // if (this.lcd) {
+                    //     await (this.lcd as any).close();
+                    // }
                     this.lcd = new LCD(
                         1,
                         address,

@@ -5,6 +5,7 @@ import cron from 'node-cron';
 import path from 'path';
 import axios from 'axios';
 import dotenv from 'dotenv';
+import { exec } from 'child_process';
 
 // Load environment variables from .env.local
 dotenv.config({ path: '.env.local' });
@@ -22,6 +23,18 @@ app.use(express.static(process.cwd()+"/build/dist"));
 
 const versionFilePath = path.join(process.cwd()+'/build/dist', 'version.txt');
 const appVersion = fs.existsSync(versionFilePath) ? fs.readFileSync(versionFilePath, 'utf8').trim() : 'Unknown';
+
+app.get('/api/logs', (req, res) => {
+  // Adjust the unit name to match your systemd service (e.g., smart-irrigation.service)
+  const lines = parseInt(req.query.lines as string) || 100;
+  exec(`journalctl -u smart-irrigation.service -n ${lines} --no-pager --output=short`, (error, stdout, stderr) => {
+    if (error) {
+      res.status(500).send(`Error reading logs: ${stderr || error.message}`);
+      return;
+    }
+    res.type('text/plain').send(stdout);
+  });
+});
 
 app.get('/api/version', (req, res) => {
   res.json({ version: appVersion });

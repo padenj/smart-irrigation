@@ -12,6 +12,7 @@ import { BrowserRouter as Router, Route, Routes, NavLink } from 'react-router-do
 import HistoricalStatusPage from './pages/HistoricalStatus';
 import NotFound from './NotFound';
 import Display from './pages/Display';
+import Logs from './pages/Logs';
 
 function App() {
   return (
@@ -63,7 +64,7 @@ function App() {
                   Programs
                 </NavLink>
                 <NavLink
-                  to="/logs"
+                  to="/systemLogs"
                   className={({ isActive }) =>
                     `px-3 py-2 text-sm font-medium ${
                       isActive
@@ -112,10 +113,11 @@ function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/zones" element={<ZoneManager />} />
                 <Route path="/programs" element={<ProgramManager />} />
-                <Route path="/logs" element={<SystemLogs />} />
+                <Route path="/systemLogs" element={<SystemLogs />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/history" element={<HistoricalStatusPage />} />
                 <Route path="/display" element={<Display />} />
+                <Route path="/logs" element={<Logs />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
           </main>

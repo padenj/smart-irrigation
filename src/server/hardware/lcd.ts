@@ -6,10 +6,8 @@ import { i2cMutex } from './i2cLock';
 dotenv.config({ path: '.env.local' });
 
 const MOCK_LCD = {
-    clearSync: () => {},
-    setCursor: (_col: number, _row: number) => {},
-    printSync: (_text: string) => {},
-    printLineSync: (_line: number, _text: string) => {},
+    begin: async () => {},
+    clear: async () => {},
     printLine: async (_line: number, _text: string) => {},
 } as unknown as LCD;
 
@@ -44,6 +42,9 @@ class LCDManager implements ILCDManager {
                 this.maxRows = settings.rows ?? 4;
 
                 await i2cMutex.runExclusive(async () => {
+                    if (this.lcd) {
+                        await (this.lcd as any).close();
+                    }
                     this.lcd = new LCD(
                         1,
                         address,
@@ -51,9 +52,9 @@ class LCDManager implements ILCDManager {
                         this.maxRows
                     );
                     
-                    this.lcd.beginSync();
-                    this.lcd.clearSync();
-                    this.lcd.printLineSync(0, 'LCD Initialized');
+                    await this.lcd.begin();
+                    await this.lcd.clear();
+                    await this.lcd.printLine(0, 'LCD Initialized');
                 });
                 console.log('LCD initialized');
             } catch (error) {

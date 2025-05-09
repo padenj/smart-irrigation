@@ -82,6 +82,12 @@ export class DisplayController {
         await DisplayController.writeLine(0, 2, zoneText);
     }
 
+    static async setSensorData(sensorIndex: number, sensorName: string, sensorValue: number, sensorUnit: string) : Promise<void> {    
+        const shortName = sensorName.slice(0, 3).toUpperCase();
+        const sensorText = `${shortName} ${Math.round(sensorValue)}${sensorUnit}`.slice(0, 8);
+        await DisplayController.insertText(0, 3, sensorIndex*9, sensorText);
+    }
+
     static async loadPage(pageNumber: number) {
         // Get current LCDSettings from settings repository
         const settings = await this.settingsRepository.findFirst();

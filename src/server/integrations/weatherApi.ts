@@ -42,14 +42,29 @@ export async function fetchWeather(): Promise<WeatherData|null> {
     const forecastWeatherUrl = `https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${location}&days=2`;
 
     let currentResponse, forecastResponse;
-    try {
-        [currentResponse, forecastResponse] = await Promise.all([
-            axios.get(currentWeatherUrl),
-            axios.get(forecastWeatherUrl),
-        ]);
-    } catch (error: any) {
-        console.error('Error fetching weather data:', error);
-        LogController.writeLog(`Error fetching weather data: ${error.message || error}`, 'ERROR');
+    const maxRetries = 5;
+    let attempt = 0;
+    while (attempt < maxRetries) {
+        try {
+            [currentResponse, forecastResponse] = await Promise.all([
+                axios.get(currentWeatherUrl),
+                axios.get(forecastWeatherUrl),
+            ]);
+            break; // Success, exit loop
+        } catch (error: any) {
+            const is502 = (error.response && error.response.status === 502);
+            attempt++;
+            if (is502 && attempt < maxRetries) {
+                const delay = Math.pow(2, attempt) * 100; // Exponential backoff: 200ms, 400ms, 800ms, etc.
+                await new Promise(res => setTimeout(res, delay));
+                continue;
+            }
+            console.error('Error fetching weather data:', error);
+            LogController.writeLog(`Error fetching weather data: ${error.message || error}`, 'ERROR');
+            return null;
+        }
+    }
+    if (!currentResponse || !forecastResponse) {
         return null;
     }
 

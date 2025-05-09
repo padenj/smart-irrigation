@@ -156,6 +156,19 @@ export function Settings({ }: SettingsProps) {
           </div>
         </div>
       </div>
+      <div className="pt-4 text-center text-gray-300 text-xs">
+        <a
+          href="/display"
+          className="inline-block text-gray-300 hover:underline text-xs font-normal"
+        >
+          Display View
+        </a> |       <a
+          href="/logs"
+          className="inline-block text-gray-300 hover:underline text-xs font-normal"
+        >
+          System Logs
+        </a>
+      </div>
     </div>
   );
 }
@@ -471,6 +484,7 @@ const WeatherSettings = ({ settings, onChange }: { settings: SystemSettings; onC
         />
       </div>
     </div>
+    
   </div>
 );
 

@@ -112,7 +112,7 @@ export class SensorController {
             switch (sensor.readValueAs) {
                 case 'raw':
                     convertedValue = rawValue;
-                    unit = 'raw';
+                    unit = 'Raw';
                     break;
                 case 'voltage':
                     convertedValue = parseFloat(((rawValue / 32767) * referenceVoltage).toFixed(2)); // Assuming 5V reference
@@ -147,18 +147,12 @@ export class SensorController {
             };
         }
 
-        let sensorDataString = '';
+        // Update the display with the latest sensor data
         const sensorEntries = Object.entries(systemStatus.sensorData);
-        sensorEntries.forEach(([name, data], index) => {
-            const shortName = name.slice(0, 3).toUpperCase();
-            const convertedValue = Math.round(data.convertedValue);
-            sensorDataString += `${shortName} ${convertedValue}${data.unit}`;
-            if (index < sensorEntries.length - 1) {
-                sensorDataString += '|';
-            }
-        });
-
-        DisplayController.writeLine(0, 3, sensorDataString);
+        for (let index = 0; index < sensorEntries.length; index++) {
+            const [name, data] = sensorEntries[index];
+            await DisplayController.setSensorData(index, name, data.convertedValue, data.unit);
+        }
 
         await systemStatusRepo.save(systemStatus);
     }

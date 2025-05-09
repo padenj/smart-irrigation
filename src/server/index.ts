@@ -36,6 +36,19 @@ app.get('/api/logs', (req, res) => {
   });
 });
 
+app.get('/api/wifi-signal', (req, res) => {
+  exec("iwconfig 2>/dev/null | grep -i --color=none 'signal level'", (error, stdout) => {
+    if (error) {
+      res.status(500).json({ error: 'Could not read WiFi signal strength' });
+      return;
+    }
+    // Example output: "Link Quality=70/70  Signal level=-40 dBm"
+    const match = stdout.match(/Signal level=([-\d]+) dBm/);
+    const signal = match ? parseInt(match[1], 10) : null;
+    res.json({ signal });
+  });
+});
+
 app.get('/api/version', (req, res) => {
   res.json({ version: appVersion });
 });

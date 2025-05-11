@@ -28,7 +28,7 @@ export default function Logs() {
         }, 5000);
 
         return () => clearInterval(interval);
-    }, []);
+    }, [lines]);
 
     return (
         <div>

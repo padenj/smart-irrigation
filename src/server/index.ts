@@ -36,6 +36,7 @@ app.get('/api/logs', (req, res) => {
     res.type('text/plain').send(stdout);
   });
 });
+
 app.post('/api/system/reboot', (req, res) => {
   console.log('Attempting to reboot server...');
   exec('sudo reboot', (error, stdout, stderr) => {
@@ -52,7 +53,7 @@ app.post('/api/system/reboot', (req, res) => {
 
 app.post('/api/system/restart-app', (req, res) => {
   console.log('Attempting to restart app...');
-  exec('sudo systemctl restart smart-irrigation.service', (error, stdout, stderr) => {
+  exec('sudo systemctl restart smart-irrigation', (error, stdout, stderr) => {
     if (error) {
       res.status(500).send(`Error restarting app: ${stderr || error.message}`);
       console.error(`Error restarting app: ${stderr || error.message}`);

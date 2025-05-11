@@ -167,7 +167,7 @@ export function Settings({ }: SettingsProps) {
           className="inline-block text-gray-300 hover:underline text-xs font-normal"
         >
           System Logs
-        </a> |       
+        </a> |&nbsp;      
         <button
           onClick={() => {
             fetch('/api/system/reboot', { method: 'POST' })
@@ -183,7 +183,7 @@ export function Settings({ }: SettingsProps) {
           className="inline-block text-gray-300 hover:underline text-xs font-normal"
         >
           Reboot Server
-        </button> | 
+        </button> |&nbsp;
         <button
           onClick={() => {
             fetch('/api/system/restart-app', { method: 'POST' })

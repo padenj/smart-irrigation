@@ -36,6 +36,17 @@ app.get('/api/logs', (req, res) => {
   });
 });
 
+app.get('/api/system/top', (req, res) => {
+  exec('top -b -n 1', (error, stdout, stderr) => {
+    if (error) {
+      res.status(500).send(`Error executing top command: ${stderr || error.message}`);
+      return;
+    }
+    res.type('text/plain').send(stdout);
+  });
+});
+
+
 app.get('/api/wifi-signal', (req, res) => {
   exec("iwconfig 2>/dev/null | grep -i --color=none 'signal level'", (error, stdout) => {
     if (error) {

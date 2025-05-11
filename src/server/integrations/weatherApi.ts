@@ -55,11 +55,12 @@ export async function fetchWeather(): Promise<WeatherData|null> {
             const is502 = (error.response && error.response.status === 502);
             attempt++;
             if (is502 && attempt < maxRetries) {
-                const delay = Math.pow(2, attempt) * 100; // Exponential backoff: 200ms, 400ms, 800ms, etc.
+                const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 200ms, 400ms, 800ms, etc.
                 await new Promise(res => setTimeout(res, delay));
+                console.log(`Retrying... Attempt ${attempt} of ${maxRetries}`);
                 continue;
             }
-            console.error('Error fetching weather data:', error);
+            console.error(`Error fetching weather data: ${error.message || error}`);
             LogController.writeLog(`Error fetching weather data: ${error.message || error}`, 'ERROR');
             return null;
         }

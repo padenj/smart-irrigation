@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 
 export default function Logs() {
     const [logs, setLogs] = useState('');
-    const [lines, setLines] = useState(500);
+    const [lines, setLines] = useState(100);
     const [topOutput, setTopOutput] = useState('');
 
     useEffect(() => {

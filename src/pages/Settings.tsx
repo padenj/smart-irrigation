@@ -167,7 +167,39 @@ export function Settings({ }: SettingsProps) {
           className="inline-block text-gray-300 hover:underline text-xs font-normal"
         >
           System Logs
-        </a>
+        </a> |       
+        <button
+          onClick={() => {
+            fetch('/api/system/reboot', { method: 'POST' })
+              .then((response) => {
+          if (response.ok) {
+            alert('Server is rebooting...');
+          } else {
+            alert('Failed to reboot the server.');
+          }
+              })
+              .catch(() => alert('Failed to reboot the server.'));
+          }}
+          className="inline-block text-gray-300 hover:underline text-xs font-normal"
+        >
+          Reboot Server
+        </button> | 
+        <button
+          onClick={() => {
+            fetch('/api/system/restart-app', { method: 'POST' })
+              .then((response) => {
+          if (response.ok) {
+            alert('Service is restarting...');
+          } else {
+            alert('Failed to restart the service.');
+          }
+              })
+              .catch(() => alert('Failed to restart the service.'));
+          }}
+          className="inline-block text-gray-300 hover:underline text-xs font-normal"
+        >
+          Restart Service
+        </button>
       </div>
     </div>
   );
@@ -445,19 +477,19 @@ const WeatherSettings = ({ settings, onChange }: { settings: SystemSettings; onC
           label="API Key"
           type="password"
           value={settings.weatherServiceSettings?.weatherapi?.apiKey || ''}
-          onChange={(value) => onChange('weatherServiceSettings.weatherApi.apiKey', value)}
+          onChange={(value) => onChange('weatherServiceSettings.weatherapi.apiKey', value)}
         />
         <SettingInput
           label="Location"
           value={settings.weatherServiceSettings?.weatherapi?.location || ''}
-          onChange={(value) => onChange('weatherServiceSettings.weatherApi.location', value)}
+          onChange={(value) => onChange('weatherServiceSettings.weatherapi.location', value)}
           placeholder="Enter location (lat,lon), zip code or city, state"
         />
         <SettingInput
           label="Update Interval (minutes)"
           type="number"
           value={settings.weatherServiceSettings?.weatherapi?.updateInterval || ''}
-          onChange={(value) => onChange('weatherServiceSettings.weatherApi.updateInterval', value)}
+          onChange={(value) => onChange('weatherServiceSettings.weatherapi.updateInterval', value)}
         />
       </div>
 
@@ -467,12 +499,12 @@ const WeatherSettings = ({ settings, onChange }: { settings: SystemSettings; onC
           label="API Key"
           type="password"
           value={settings.weatherServiceSettings?.openweathermap?.apiKey || ''}
-          onChange={(value) => onChange('weatherServiceSettings.openWeatherMap.apiKey', value)}
+          onChange={(value) => onChange('weatherServiceSettings.openweathermap.apiKey', value)}
         />
         <SettingInput
           label="Location"
           value={settings.weatherServiceSettings?.openweathermap?.location || ''}
-          onChange={(value) => onChange('weatherServiceSettings.openWeatherMap.location', value)}
+          onChange={(value) => onChange('weatherServiceSettings.openweathermap.location', value)}
           placeholder="Enter location (lat,lon) or zip code"
         />
 
@@ -480,7 +512,7 @@ const WeatherSettings = ({ settings, onChange }: { settings: SystemSettings; onC
           label="Update Interval (minutes)"
           type="number"
           value={settings.weatherServiceSettings?.openweathermap?.updateInterval || ''}
-          onChange={(value) => onChange('weatherServiceSettings.openWeatherMap.updateInterval', value)}
+          onChange={(value) => onChange('weatherServiceSettings.openweathermap.updateInterval', value)}
         />
       </div>
     </div>

@@ -6,6 +6,7 @@ import path from 'path';
 import axios from 'axios';
 import dotenv from 'dotenv';
 import { exec } from 'child_process';
+import { LogController } from './controllers/LogController.js';
 
 // Load environment variables from .env.local
 dotenv.config({ path: '.env.local' });
@@ -35,7 +36,33 @@ app.get('/api/logs', (req, res) => {
     res.type('text/plain').send(stdout);
   });
 });
+app.post('/api/system/reboot', (req, res) => {
+  console.log('Attempting to reboot server...');
+  exec('sudo reboot', (error, stdout, stderr) => {
+    if (error) {
+      res.status(500).send(`Error rebooting server: ${stderr || error.message}`);
+      console.error(`Error rebooting server: ${stderr || error.message}`);
+      return;
+    }
+    console.log('Server is rebooting...');
+    res.send('Server is rebooting...');
+    LogController.writeLog('Server is rebooting...', 'INFO');
+  });
+});
 
+app.post('/api/system/restart-app', (req, res) => {
+  console.log('Attempting to restart app...');
+  exec('sudo systemctl restart smart-irrigation.service', (error, stdout, stderr) => {
+    if (error) {
+      res.status(500).send(`Error restarting app: ${stderr || error.message}`);
+      console.error(`Error restarting app: ${stderr || error.message}`);
+      return;
+    }
+    console.log('App is restarting...');
+    res.send('App is restarting...');
+    LogController.writeLog('App is restarting...', 'INFO');
+  });
+});
 app.get('/api/system/top', (req, res) => {
   exec('top -b -n 1', (error, stdout, stderr) => {
     if (error) {

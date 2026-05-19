@@ -21,3 +21,4 @@
 - Keep hardware-specific behavior mockable and isolated behind controller or hardware interfaces.
 - Check both `src/shared/*` and `src/server/dto/*` before refactoring persistence-related models; this codebase currently mixes shared contracts with DTO-backed repositories.
 - Preserve the current deployment shape: production serves the SPA from `build/dist` and runs the server from `build/server/index.js`.
+- When making a git commit for this repository, push it afterward unless explicitly told not to.

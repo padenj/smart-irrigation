@@ -1,4 +1,3 @@
-import { Entity, Fields } from "remult";
 
 
 export enum ConditionType {
@@ -14,37 +13,18 @@ export interface ProgramCondition {
 
 export type ConditionOperator = "=" | "!=" | ">" | "<" | ">=" | "<="
 
-@Entity("programs", {
-    allowApiCrud: true,
-})
-export class Program {
-    @Fields.uuid()
-    id!: string;
 
-    @Fields.string()
-    name!: string;
-
-    @Fields.string()
-    startTime!: string; // Format: HH:mm
-
-    @Fields.string()
-    endTime!: string; // Format: HH:mm
-
-    @Fields.json()
-    daysOfWeek!: number[]; // Sunday = 0
-
-    @Fields.object()
-    zones!: { zoneId: string; duration: number }[]; // Example: [{ zoneId: "zone1", duration: 30 }]
-
-    @Fields.boolean()
-    isEnabled!: boolean;
-
-    @Fields.string()
-    nextScheduledRunTime: string | null = null; // Format: YYYY-MM-DDTHH:mm:ss.sssZ
-
-    @Fields.string()
-    lastRunTime: string | null = null; // Format: YYYY-MM-DDTHH:mm:ss.sssZ
-
-    @Fields.json()
-    conditions: ProgramCondition[] = [];
+export interface Program {
+    id: string;
+    name: string;
+    startTime: string;
+    endTime: string;
+    daysOfWeek: number[];
+    zones: { zoneId: string; duration: number }[];
+    isEnabled: boolean;
+    nextScheduledRunTime: string | null;
+    lastRunTime: string | null;
+    skipUntil: string | null;
+    conditions: ProgramCondition[];
 }
+

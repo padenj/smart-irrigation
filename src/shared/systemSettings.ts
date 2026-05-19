@@ -1,4 +1,3 @@
-import { Entity, Fields } from "remult";
 
 export interface WeatherServiceSettings {
     apiKey: string;
@@ -26,72 +25,19 @@ export interface LCDSettings {
     i2cAddress: number; // I2C address for the AtoD converter
 }
 
-@Entity("settings", {
-    allowApiCrud: true
-})
-export class SystemSettings {
-    @Fields.number()
-    id: number = 0;
-
-    @Fields.string()
-    timezone = "America/Denver";
-
-    @Fields.string<SystemSettings>({
-        validate: (setting) => {
-            if (setting.temperatureUnit !== "F" && setting.temperatureUnit !== "C") {
-                console.error("temperatureUnit must be either 'F' or 'C'");
-            }
-        }
-    })
-    temperatureUnit = "F"; // F or C
-
-    @Fields.string<SystemSettings>({
-        validate: (setting) => {
-            if (setting.measurementUnit !== "imperial" && setting.measurementUnit !== "metric") {
-                console.error("measurementUnit must be either 'imperial' or 'metric'");
-            }
-        }
-    })
-    measurementUnit = "imperial"; // imperial or metric
-
-    @Fields.string()
-    weatherService = "weatherapi"; // openmateo or weatherapi
-
-    @Fields.json()
+export interface SystemSettings {
+    id: number;
+    timezone: string;
+    temperatureUnit: 'F' | 'C'; // F or C
+    measurementUnit: 'imperial' | 'metric'; // imperial or metric
+    weatherService: 'weatherapi' | 'openweathermap'; // openmateo or weatherapi
     weatherServiceSettings: {
-        'weatherapi'?: WeatherServiceSettings,
-        'openweathermap'?: WeatherServiceSettings
-    } = {
-        weatherapi: {
-            apiKey: "",
-            location: "",
-            updateInterval: 15
-        },
-        openweathermap: {
-            apiKey: "",
-            location: "",
-            updateInterval: 15
-        }
+        weatherapi?: WeatherServiceSettings,
+        openweathermap?: WeatherServiceSettings
     };
-    
-
-    @Fields.number()
-    sensorReferenceVoltage = 3.3; // Voltage reference for the AtoD converter
-
-    @Fields.number()
-    analogDigitalAddress = 0x48; // I2C address for the LCD display
-
-    @Fields.json()
-    sensors: SensorSettings[] = [];
-
-    @Fields.number()
-    historySnapshotInterval = 60; // Interval in seconds for saving system status snapshots
-
-    @Fields.json()
-    lcdSettings: LCDSettings = {
-        rows: 4,
-        cols: 20,
-        pageCycleTimeSeconds: 20, // Time in seconds to cycle through LCD pages
-        i2cAddress: 0x48 // I2C address for the AtoD converter
-    };
+    sensorReferenceVoltage: number; // Voltage reference for the AtoD converter
+    analogDigitalAddress: number; // I2C address for the LCD display
+    sensors: SensorSettings[];
+    historySnapshotInterval: number; // Interval in seconds for saving system status snapshots
+    lcdSettings: LCDSettings;
 }

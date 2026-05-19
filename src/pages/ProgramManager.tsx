@@ -8,6 +8,7 @@ import { useSettingsContext } from '../hooks/SettingsContext';
 import { DateTimeUtils } from '../server/utilities/DateTimeUtils';
 import { DateTime } from 'luxon';
 import { ProgramController } from '../server/controllers/ProgramController';
+import { programRepository } from '../server/data/repositories';
 
 interface ProgramManagerProps {
 }
@@ -20,7 +21,7 @@ export function ProgramManager({ }: ProgramManagerProps) {
   const [programDraft, setProgramDraft] = React.useState<Program | null>(null);
   const [programs, setPrograms] = React.useState<Program[]>([]);
   const [allZones, setAllZones] = React.useState<Zone[]>([]);
-  const programRepo = remult.repo(Program);
+  const programRepo = programRepository;
   const systemStatus = useStatusContext();
   const systemSettings = useSettingsContext();
 
@@ -52,6 +53,36 @@ export function ProgramManager({ }: ProgramManagerProps) {
       console.error(e);
     }
   };
+
+  const handleSkipNextRun = async (programId: string) => {
+    console.log('Skipping next run for program:', programId);
+    const program = programs.find((p) => p.id === programId);
+    if (program) {
+
+      const updatedProgram = { ...program, skipUntil: program.nextScheduledRunTime };
+      updatedProgram.nextScheduledRunTime = await ProgramController.calculateNextScheuleDate(updatedProgram);
+      await programRepo.update(programId, updatedProgram);
+      setPrograms((prevPrograms) =>
+        prevPrograms.map((p) => (p.id === updatedProgram.id ? updatedProgram : p))
+      );
+      console.log('Program skipped until next run:', updatedProgram);
+    }
+    else {
+      console.error('Program not found');
+    }
+  }
+
+  const handleCancelSkipNextRun = async (programId: string) => {
+    const program = programs.find((p) => p.id === programId);
+    if (program) {
+      const updatedProgram = { ...program, skipUntil: null };
+      updatedProgram.nextScheduledRunTime = await ProgramController.calculateNextScheuleDate(updatedProgram);
+      await programRepo.update(programId, updatedProgram);
+      setPrograms((prevPrograms) =>
+        prevPrograms.map((p) => (p.id === updatedProgram.id ? updatedProgram : p))
+      );
+    }
+  }
 
   const handleCancelEdit = () => {
     const originalProgram = programs.find((p) => p.id === editingProgram);
@@ -206,6 +237,21 @@ export function ProgramManager({ }: ProgramManagerProps) {
                 .map((day) => daysOfWeek.find((d) => d.num === day)?.name)
                 .join(', ')}
             </p>
+            {program.skipUntil && (
+              <><p className="text-xs text-orange-600 mt-1">
+                Skipped until {DateTime.fromISO(program.skipUntil).toLocaleString(DateTime.DATE_MED)}
+              </p>
+              <button
+                type="button"
+                className="ml-2 px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-xs"
+                onClick={async () => {
+                  setProgramDraft({ ...programDraft!, skipUntil: null });
+                }}
+              >
+                Clear
+              </button>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -330,8 +376,35 @@ export function ProgramManager({ }: ProgramManagerProps) {
                 {program.nextScheduledRunTime
                   ? DateTimeUtils.isoToDateTimeShortStr(program.nextScheduledRunTime, systemSettings.timezone)
                   : 'Not Scheduled'}
+                {program.skipUntil && (
+                  <span className="ml-2 text-xs text-orange-600">
+                    (Skip until {DateTimeUtils.isoToDateTimeShortStr(program.skipUntil, systemSettings.timezone)})
+                  </span>
+                )}
               </div>
               <div className="flex items-center space-x-4">
+                <button
+                  type="button"
+                  className={`px-2 py-1 rounded text-xs ${
+                  !program?.nextScheduledRunTime
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-500 text-white hover:bg-blue-600'
+                  }`}
+                  onClick={() => handleSkipNextRun(program.id)}
+                  disabled={!program?.nextScheduledRunTime}
+                  title="Set to next scheduled run"
+                >
+                  Skip Next
+                </button>
+                {program.skipUntil && (
+                  <button
+                    type="button"
+                    className="px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-xs"
+                    onClick={() => handleCancelSkipNextRun(program.id)}
+                  >
+                    Cancel Skip
+                  </button>
+                )}
                 {systemStatus?.activeProgram?.id === program.id ? (
                   <button
                     onClick={handleStopActiveProgram}

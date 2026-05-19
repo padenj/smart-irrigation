@@ -8,7 +8,7 @@ import { Line } from "react-chartjs-2";
 import { Chart, registerables } from "chart.js";
 import { remult } from "remult";
 import { SystemStatusSnapshot } from "../shared/systemStatus";
-import { SystemSettings } from "../shared/systemSettings";
+import { SystemSettingsDto } from "../server/dto/SystemSettingsDto";
 import { saveAs } from "file-saver";
 
 import {Table,
@@ -74,7 +74,7 @@ useEffect(() => {
 
 // Fetch settings to get current weather service
 useEffect(() => {
-    remult.repo(SystemSettings)
+    remult.repo(SystemSettingsDto)
         .findFirst()
         .then((settings) => {
             setWeatherService(settings?.weatherService);

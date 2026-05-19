@@ -1,15 +1,16 @@
 import { remult } from 'remult';
-import { LCDSettings, SystemSettings } from '../../shared/systemSettings';
+import type { LCDSettings } from '../../shared/systemSettings';
 import { WeatherData } from '../../shared/weatherData';
 import { ILCDManager } from '../types/hardware';
 import { DateTimeUtils } from '../utilities/DateTimeUtils';
 import { LcdPage } from '../../shared/lcdPages';
+import { SystemSettingsDto } from '../dto/SystemSettingsDto';
 
 export class DisplayController {
     private static initialized = false;
     static lcdManager: ILCDManager;
     static pageRepository = remult.repo(LcdPage);
-    static settingsRepository = remult.repo(SystemSettings);
+    static settingsRepository = remult.repo(SystemSettingsDto);
     static currentSettings: LCDSettings | null = null;
     static currentPageIndex: number = 0;
     private static _intervalInstance: NodeJS.Timeout | undefined;

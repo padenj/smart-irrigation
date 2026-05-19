@@ -1,7 +1,8 @@
 import { BackendMethod, repo } from "remult";
-import { SystemStatus, SystemStatusSnapshot } from "../../shared/systemStatus.js";
-import { SystemSettings } from "../../shared/systemSettings.js";
+import { SystemStatusSnapshot } from "../../shared/systemStatus.js";
 import { DateTimeUtils } from "../utilities/DateTimeUtils.js";
+import { SystemSettingsDto } from "../dto/SystemSettingsDto.js";
+import { SystemStatusDto } from "../dto/SystemStatusDto.js";
 
 
 export class HistoryController {
@@ -13,8 +14,8 @@ export class HistoryController {
     @BackendMethod({ allowed: true, apiPrefix: 'history' })
     static async saveSnapshot() {
         const snapshotRepo = repo(SystemStatusSnapshot);
-        const settingsRepo = repo(SystemSettings);
-        const systemStatusRepo = repo(SystemStatus);
+        const settingsRepo = repo(SystemSettingsDto);
+        const systemStatusRepo = repo(SystemStatusDto);
 
         const settings = await settingsRepo.findFirst();
         if (!settings) {

@@ -1,4 +1,4 @@
-const CACHE_NAME = "smart-irrigation-cache-v1";
+const CACHE_NAME = "smart-irrigation-cache-v2";
 const urlsToCache = ["/manifest.json"];
 
 // Install the service worker
@@ -12,10 +12,29 @@ self.addEventListener("install", (event) => {
 
 // Fetch resources from the cache
 self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") {
+    return;
+  }
+
+  const requestUrl = new URL(event.request.url);
+  if (requestUrl.origin !== self.location.origin) {
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
+    (async () => {
+      const cachedResponse = await caches.match(event.request);
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+
+      try {
+        return await fetch(event.request);
+      } catch (error) {
+        console.error("Service worker fetch failed:", error);
+        return Response.error();
+      }
+    })()
   );
 });
 

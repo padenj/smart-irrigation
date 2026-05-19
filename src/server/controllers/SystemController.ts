@@ -1,6 +1,4 @@
 import { BackendMethod, repo } from 'remult'
-import { SystemStatus } from '../../shared/systemStatus'
-import { SystemSettings } from '../../shared/systemSettings';
 import { DisplayController } from './DisplayController';
 import { WeatherController } from './WeatherController';
 import { ProgramController } from './ProgramController';
@@ -9,8 +7,10 @@ import { SensorController } from './SensorController';
 import { HistoryController } from './HistoryController';
 import { LogController } from './LogController';
 import path from 'path';
+import { SystemSettingsDto } from '../dto/SystemSettingsDto';
+import { SystemStatusDto } from '../dto/SystemStatusDto';
 
-export const systemStatusRepo = repo(SystemStatus);
+export const systemStatusRepo = repo(SystemStatusDto);
 
 export class SystemController {
     private static UpdateLastRunDate() {
@@ -33,7 +33,7 @@ export class SystemController {
      */
     @BackendMethod({ allowed: true, apiPrefix: 'system' })
     static async run() {
-        const systemSettings = await repo(SystemSettings).findFirst();
+        const systemSettings = await repo(SystemSettingsDto).findFirst();
 
         await SensorController.ReadSensorData();
         SystemController.UpdateLastRunDate();
@@ -45,7 +45,7 @@ export class SystemController {
 
     @BackendMethod({ allowed: true, apiPrefix: 'system' })
     static async init() {
-        const systemSettings = await repo(SystemSettings).findFirst();
+        const systemSettings = await repo(SystemSettingsDto).findFirst();
         if (!systemSettings) {
             console.log('System settings not found, cannot initialize system');
             return "System settings not found";

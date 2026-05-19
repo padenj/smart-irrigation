@@ -1,10 +1,11 @@
 import { BackendMethod, remult } from 'remult';
-import { SystemSettings } from '../../shared/systemSettings';
-import { SystemStatus } from '../../shared/systemStatus';
+import type { SystemSettings } from '../../shared/systemSettings';
 import { IAtoDController } from '../types/hardware';
 import { LogController } from './LogController';
 import { DateTime } from 'luxon';
 import { DisplayController } from './DisplayController';
+import { SystemSettingsDto } from '../dto/SystemSettingsDto';
+import { SystemStatusDto } from '../dto/SystemStatusDto';
 
 export class SensorController {
     static atodController: IAtoDController;
@@ -20,8 +21,8 @@ export class SensorController {
 
     @BackendMethod({ allowed: true, apiPrefix: 'sensors' })
     static async ReadSensorData(): Promise<void> {
-        const systemSettingsRepo = remult.repo(SystemSettings);
-        const systemStatusRepo = remult.repo(SystemStatus);
+        const systemSettingsRepo = remult.repo(SystemSettingsDto);
+        const systemStatusRepo = remult.repo(SystemStatusDto);
         const systemSettings = await systemSettingsRepo.findFirst();
         const systemStatus = await systemStatusRepo.findFirst();
 

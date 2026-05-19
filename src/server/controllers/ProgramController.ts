@@ -1,18 +1,17 @@
 import { DateTime } from 'luxon';
-import { BackendMethod, repo } from 'remult';
+import { BackendMethod } from 'remult';
 import { ConditionOperator, ConditionType, Program } from '../../shared/programs';
-import { SystemSettings } from '../../shared/systemSettings';
 import { DateTimeUtils } from '../utilities/DateTimeUtils';
-import { systemStatusRepo } from './SystemController';
 import { ZoneController } from './ZoneController';
 import { LogController } from './LogController';
 import { DisplayController } from './DisplayController';
+import { programRepository, settingsRepository, systemStatusRepository } from '../data/repositories';
 
 export class ProgramController {
 
     @BackendMethod({ allowed: true, apiPrefix: 'programs' })
     static async calculateNextScheuleDate(program: Program, skipToday?: boolean): Promise<string | null> {
-
+console.log(`Calculating next schedule date for program ${program.name}`);
         if (!program.zones || program.zones.length === 0) {
             console.log(`Program ${program.name} has no zones. Cannot calculate schedule.`);
             return null;
@@ -28,11 +27,16 @@ export class ProgramController {
             return null;
         }
 
-        const settings = await repo(SystemSettings).findFirst();
+        const settings = await settingsRepository.findFirst();
         const timezone = settings?.timezone || 'UTC';
         console.log(`Calculating schedule for program ${program.name} in timezone ${timezone}`);
 
-        const getNextRunDate = (daysOfWeek: number[], startTime: string, lastRunDate: Date | null): string | null => {
+        const getNextRunDate = (
+            daysOfWeek: number[],
+            startTime: string,
+            lastRunDate: Date | null,
+            afterDate?: Date
+        ): string | null => {
             if (!daysOfWeek || daysOfWeek.length === 0) {
                 console.log('No days of the week provided');
                 return null;
@@ -44,33 +48,39 @@ export class ProgramController {
 
             let nextRunDate: Date | null = null;
 
-            for (let i = 0; i < sortedDaysOfWeek.length; i++) {
-                const dayOfWeek = sortedDaysOfWeek[(i + sortedDaysOfWeek.indexOf(todayDayOfWeek) + (skipToday ? 1 : 0)) % sortedDaysOfWeek.length];
-
-                let candidateDate = now.set({ hour: hours, minute: minutes, second: 0, millisecond: 0 });
-                if (dayOfWeek >= todayDayOfWeek) {
-                    // If the dayOfWeek is today (and skipToday is false) or later this week
-                    candidateDate = candidateDate.plus({ days: dayOfWeek - todayDayOfWeek });
-                } else {
-                    // If the dayOfWeek is earlier in the week, jump to next week
-                    candidateDate = candidateDate.plus({ days: 7 - todayDayOfWeek + dayOfWeek });
+            // Try up to two weeks ahead to find a valid date after afterDate
+            let candidateDate = now.set({ hour: hours, minute: minutes, second: 0, millisecond: 0 });
+            for (let i = 0; i < (7*52); i++) { // Check up to 52 weeks ahead
+                const currentDayOfWeek = candidateDate.weekday % 7; // 0 (Sunday) - 6 (Saturday)
+                if (
+                    sortedDaysOfWeek.includes(currentDayOfWeek) &&
+                    (!skipToday || i > 0)
+                ) {
+                    const candidateJSDate = candidateDate.toJSDate();
+                    if (
+                        candidateDate >= now &&
+                        (!lastRunDate || candidateJSDate > lastRunDate) &&
+                        (!afterDate || candidateJSDate > afterDate)
+                    ) {
+                        nextRunDate = candidateJSDate;
+                        break;
+                    }
                 }
-
-                if (candidateDate >= now && (!lastRunDate || candidateDate.toJSDate() > lastRunDate)) {
-                    nextRunDate = candidateDate.toJSDate();
-                    break;
-                }
+                candidateDate = candidateDate.plus({ days: 1 });
             }
 
             if (!nextRunDate) {
-                // If no valid date was found this week, jump to the next occurrence in the next week
+                // Fallback: next week, first day
                 const firstDayOfWeek = sortedDaysOfWeek[0];
                 const candidateDate = now
                     .plus({ days: 7 - todayDayOfWeek + firstDayOfWeek })
                     .set({ hour: hours, minute: minutes, second: 0, millisecond: 0 });
-
-                if (!lastRunDate || candidateDate.toJSDate() > lastRunDate) {
-                    nextRunDate = candidateDate.toJSDate();
+                const candidateJSDate = candidateDate.toJSDate();
+                if (
+                    (!lastRunDate || candidateJSDate > lastRunDate) &&
+                    (!afterDate || candidateJSDate > afterDate)
+                ) {
+                    nextRunDate = candidateJSDate;
                 }
             }
             console.log(`Next run date for program ${program.name} is ${nextRunDate}`);
@@ -79,7 +89,26 @@ export class ProgramController {
 
         const { lastRunTime, daysOfWeek, startTime } = program;
         const lastRunDate = lastRunTime ? DateTimeUtils.fromISODateTime(lastRunTime, timezone) : null;
-        return getNextRunDate(daysOfWeek, startTime, lastRunDate);
+        let afterDate: Date | undefined = undefined;
+        if (program.skipUntil) {
+            const parsedDate = DateTimeUtils.fromISODateTime(program.skipUntil, timezone);
+            if (parsedDate) {
+                afterDate = parsedDate;
+            }
+        }
+
+        let nextRun = getNextRunDate(daysOfWeek, startTime, lastRunDate, afterDate);
+
+        // If scheduleAfter is provided and nextRun is before or equal to scheduleAfter, find the next one after scheduleAfter
+        if (program.skipUntil && nextRun) {
+            const nextRunDateObj = DateTimeUtils.fromISODateTime(nextRun, timezone);
+            if (nextRunDateObj && afterDate && nextRunDateObj <= afterDate) {
+                // Try again, but now afterDate is scheduleAfter
+                nextRun = getNextRunDate(daysOfWeek, startTime, lastRunDate, afterDate);
+            }
+        }
+
+        return nextRun;
     }
 
     /**
@@ -88,7 +117,7 @@ export class ProgramController {
     @BackendMethod({ allowed: true, apiPrefix: 'programs' })
     static async updateProgramSchedule(programId: string, skipToday?: boolean) {
 
-        const programRepo = repo(Program);
+        const programRepo = programRepository;
 
         const program = await programRepo.findId(programId);
 
@@ -107,7 +136,7 @@ export class ProgramController {
 
     @BackendMethod({ allowed: true, apiPrefix: 'programs' })
     static async recalculateAllSchedules() {
-        const programRepo = repo(Program);
+        const programRepo = programRepository;
         const programs = await programRepo.find();
 
         for (const program of programs) {
@@ -121,9 +150,9 @@ export class ProgramController {
     */
     @BackendMethod({ allowed: true, apiPrefix: 'programs' })
     static async runProgram(programId: string, isManual?: boolean) {
-        const programRepo = repo(Program);
-        const systemStatus = await systemStatusRepo.findFirst();
-        const settings = await repo(SystemSettings).findFirst();
+        const programRepo = programRepository;
+        const systemStatus = await systemStatusRepository.findFirst();
+        const settings = await settingsRepository.findFirst();
         const timezone = settings?.timezone || 'UTC';
 
         const program = await programRepo.findId(programId);
@@ -143,12 +172,13 @@ export class ProgramController {
                     let isConditionMet = false;
 
                     switch (type) {
-                        case ConditionType.TEMPERATURE:
+                        case ConditionType.TEMPERATURE: {
                             const currentTemperature = systemStatus?.weatherData?.current?.temperature || 0;
                             isConditionMet = evaluateCondition(operator, currentTemperature, value);
 
-                    console.log("Condition evaluation result:", isConditionMet, type, operator, value, currentTemperature);
+                            console.log("Condition evaluation result:", isConditionMet, type, operator, value, currentTemperature);
                             break;
+                        }
 
                         case ConditionType.MOISTURE:
                             isConditionMet = true; // Placeholder for moisture condition
@@ -176,7 +206,7 @@ export class ProgramController {
 
         // Set the active program in the system status
         if (systemStatus) {
-            await systemStatusRepo.update(systemStatus.id, { activeProgram: program });
+            await systemStatusRepository.update(systemStatus.id, { activeProgram: program });
         }
 
         // Update program's lastRunTime
@@ -186,20 +216,20 @@ export class ProgramController {
 
         for (const zone of program.zones) {
             // Check if the program is still the active program
-            const currentSystemStatus = await systemStatusRepo.findFirst();
+            const currentSystemStatus = await systemStatusRepository.findFirst();
 
             if (!currentSystemStatus || currentSystemStatus.activeProgram?.id !== program.id) {
                 console.log(`Program ${program.name} has been manually stopped or replaced. Aborting.`);
                 LogController.writeLog(`Program ${program.name} has been manually stopped`, "WARNING");
                 break;
             }
-            await ZoneController.runZone(zone.zoneId, zone.duration);
+            await ZoneController.runZoneBlocking(zone.zoneId, zone.duration);
         }
 
         LogController.writeLog(`Program ${program.name} completed`);
         // Clear the active program in the system status
         if (systemStatus) {
-            await systemStatusRepo.update(systemStatus.id, { activeProgram: null });
+            await systemStatusRepository.update(systemStatus.id, { activeProgram: null });
         }
 
         function evaluateCondition(operator: ConditionOperator, referenceValue: number, thresholdValue: number) {
@@ -224,13 +254,13 @@ export class ProgramController {
      * Checks for the next program to run and triggers it if necessary.
      */
     static async runNextScheduledProgram() {
-        const programRepo = repo(Program);
+        const programRepo = programRepository;
         const programs = await programRepo.find();
-        const settings = await repo(SystemSettings).findFirst();
+        const settings = await settingsRepository.findFirst();
         const timezone = settings?.timezone || 'UTC';
         const now = new Date();
 
-        const systemStatus = await systemStatusRepo.findFirst();
+        const systemStatus = await systemStatusRepository.findFirst();
         if (systemStatus?.activeProgram) {
             console.log('An active program is already running. Exiting function.');
             return;
@@ -262,7 +292,7 @@ export class ProgramController {
      */
     @BackendMethod({ allowed: true, apiPrefix: 'programs' })
     static async stopActiveProgram() {
-        const systemStatus = await systemStatusRepo.findFirst();
+        const systemStatus = await systemStatusRepository.findFirst();
         if (!systemStatus || !systemStatus.activeProgram) {
             console.log('No active program to stop.');
             DisplayController.setActiveProgram();
@@ -277,7 +307,7 @@ export class ProgramController {
         }
 
         // Clear the active program and zone in the system status
-        await systemStatusRepo.update(0, { activeProgram: null, activeZone: null });
+        await systemStatusRepository.update(0, { activeProgram: null, activeZone: null });
 
         LogController.writeLog(`Program ${program.name} stopped and all zones turned off.`);
         console.log('Active program stopped and all zones turned off.');

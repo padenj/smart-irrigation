@@ -1,8 +1,6 @@
 import { remultExpress } from "remult/remult-express";
 import { Zone } from "../shared/zones.js";
-import { SystemStatus, SystemStatusSnapshot } from "../shared/systemStatus.js";
-import { Program } from "../shared/programs.js";
-import { SystemSettings } from "../shared/systemSettings.js";
+import { SystemStatusSnapshot } from "../shared/systemStatus.js";
 import { SystemController } from "./controllers/SystemController.js";
 import { ZoneController } from './controllers/ZoneController.js';
 import { ProgramController } from './controllers/ProgramController.js';
@@ -14,19 +12,22 @@ import { LogController } from "./controllers/LogController.js";
 import { SensorController } from "./controllers/SensorController.js";
 import ADS1115Wrapper from "./hardware/sensors.js";
 import { LcdPage } from "../shared/lcdPages.js";
+import { ProgramDto } from "./dto/ProgramDto.js";
+import { SystemSettingsDto } from "./dto/SystemSettingsDto.js";
+import { SystemStatusDto } from "./dto/SystemStatusDto.js";
 
 export const api = remultExpress({
-    entities: [Zone, SystemStatus, Program, SystemSettings, SystemLog, SystemStatusSnapshot, LcdPage],
+    entities: [Zone, SystemStatusDto, ProgramDto, SystemSettingsDto, SystemLog, SystemStatusSnapshot, LcdPage],
     initApi: async (remult) => {
-        const systemStatusRepo = remult.repo(SystemStatus);
-        const systemSettingsRepo = remult.repo(SystemSettings);
+        const systemStatusRepo = remult.repo(SystemStatusDto);
+        const systemSettingsRepo = remult.repo(SystemSettingsDto);
         const systemSettings = await systemSettingsRepo.findFirst();
         if (!systemSettings) {
-            await systemSettingsRepo.insert(new SystemSettings());
+            await systemSettingsRepo.insert(new SystemSettingsDto());
         }
         const systemStatus = await systemStatusRepo.findFirst();
         if (!systemStatus) {
-            await systemStatusRepo.insert(new SystemStatus());
+            await systemStatusRepo.insert(new SystemStatusDto());
         }
     },
     controllers: [ SystemController, ZoneController, ProgramController, LogController ],

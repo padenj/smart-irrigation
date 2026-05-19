@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Bell, Cpu, Database, Globe, Shield, Sliders, Wifi } from 'lucide-react';
 import { remult } from 'remult';
-import { SystemSettings } from '../shared/systemSettings';
+import type { SystemSettings } from '../shared/systemSettings';
 import { useStatusContext } from '../hooks/StatusContext';
+import { SystemSettingsDto } from '../server/dto/SystemSettingsDto';
 
 interface SettingsProps {
 
@@ -12,7 +13,7 @@ export function Settings({ }: SettingsProps) {
   const [activeSection, setActiveSection] = React.useState('general');
   const [settings, setSettings] = useState<SystemSettings>();
   const [isDirty, setIsDirty] = useState(false);
-  const settingsRepo = remult.repo(SystemSettings);
+  const settingsRepo = remult.repo(SystemSettingsDto);
 
   useEffect(() => {
     const subscription = settingsRepo

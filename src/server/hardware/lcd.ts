@@ -1,19 +1,24 @@
-import LCD from 'raspberrypi-liquid-crystal';
 import dotenv from 'dotenv';
 import { ILCDManager } from '../types/hardware';
-import { LCDSettings } from '../../shared/systemSettings';
+import type { LCDSettings } from '../../shared/systemSettings';
 import { i2cMutex } from './i2cLock';
 dotenv.config({ path: '.env.local' });
+
+type LcdLike = {
+    begin(): Promise<void>;
+    clear(): Promise<void>;
+    printLine(line: number, text: string): Promise<void>;
+};
 
 const MOCK_LCD = {
     begin: async () => {},
     clear: async () => {},
     printLine: async (_line: number, _text: string) => {},
-} as unknown as LCD;
+} satisfies LcdLike;
 
 class LCDManager implements ILCDManager {
     private static instance: LCDManager;
-    private lcd: LCD;
+    private lcd: LcdLike;
     private maxColumns = 20;
     private maxRows = 4;
     private settings?: LCDSettings;
@@ -45,12 +50,13 @@ class LCDManager implements ILCDManager {
                     // if (this.lcd) {
                     //     await (this.lcd as any).close();
                     // }
+                    const { default: LCD } = await import('raspberrypi-liquid-crystal');
                     this.lcd = new LCD(
                         1,
                         address,
                         this.maxColumns,
                         this.maxRows
-                    );
+                    ) as LcdLike;
                     
                     await this.lcd.begin();
                     await this.lcd.clear();

@@ -1,31 +1,38 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { remult } from 'remult';
-import { SystemStatus } from '../shared/systemStatus';
+import type { SystemStatus } from '../shared/systemStatus';
+import { SystemStatusDto } from '../server/dto/SystemStatusDto';
 
 
-const StatusContext = createContext<SystemStatus>(new SystemStatus());
+const StatusContext = createContext<SystemStatus>(new SystemStatusDto());
 
 export const StatusProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [status, setStatus] = useState<SystemStatus>(new SystemStatus());
-
-    const fetchStatus = async () => {
-        try {
-            const systemStatusRepo = remult.repo(SystemStatus);
-            const systemStatus = await systemStatusRepo.findFirst(); 
-            if (!systemStatus) {
-                console.error('No system status found');
-                return;
-            }
-            setStatus(systemStatus);
-        } catch (error) {
-            console.error('Failed to fetch system status:', error);
-        }
-    };
+    const [status, setStatus] = useState<SystemStatus>(new SystemStatusDto());
 
     useEffect(() => {
-        fetchStatus();
-        const interval = setInterval(fetchStatus, 3000); 
-        return () => clearInterval(interval);
+        const systemStatusRepo = remult.repo(SystemStatusDto);
+        const loadStatus = async () => {
+            try {
+                const systemStatus = await systemStatusRepo.findId(0);
+                if (!systemStatus) {
+                    return;
+                }
+
+                setStatus(systemStatus);
+            } catch (error) {
+                console.error('Failed to fetch system status:', error);
+            }
+        };
+
+        void loadStatus();
+
+        const subscription = systemStatusRepo
+            .liveQuery({ where: { id: 0 } })
+            .subscribe(() => {
+                void loadStatus();
+            });
+
+        return subscription;
     }, []);
 
     return (

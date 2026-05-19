@@ -5,17 +5,14 @@ import { remult } from 'remult';
 import { useStatusContext } from '../hooks/StatusContext';
 import { ZoneController } from '../server/controllers/ZoneController';
 
-interface ZoneManagerProps {
-  
-
-}
-
 const zoneRepo = remult.repo(Zone);
 
-export function ZoneManager({}: ZoneManagerProps) {
+export function ZoneManager() {
   const [editingZone, setEditingZone] = useState<string>('');
   const [zones, setZones] = useState<Zone[]>([]);
   const [editBuffer, setEditBuffer] = useState<Partial<Zone> | null>(null);
+  const [pendingZoneId, setPendingZoneId] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
   const systemStatus = useStatusContext();
 
   useEffect(() => {
@@ -24,6 +21,24 @@ export function ZoneManager({}: ZoneManagerProps) {
     );
     return subscription;
   }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (!pendingZoneId) {
+      return;
+    }
+
+    if (systemStatus?.activeZone?.id === pendingZoneId) {
+      setPendingZoneId(null);
+    }
+  }, [pendingZoneId, systemStatus?.activeZone?.id]);
 
   const handleSaveZone = async () => {
     if (!editBuffer || !editingZone) return;
@@ -62,8 +77,41 @@ export function ZoneManager({}: ZoneManagerProps) {
     }
   };
 
-  const handleStartZone = (zoneId: string) => ZoneController.runZone(zoneId, 30);
-  const handleStopZone = () => ZoneController.requestActiveZoneStop();
+  const handleStartZone = async (zoneId: string) => {
+    setPendingZoneId(zoneId);
+
+    try {
+      await ZoneController.runZone(zoneId, 30, true);
+    } catch (error) {
+      setPendingZoneId(null);
+      console.error(error);
+    }
+  };
+
+  const handleStopZone = async () => {
+    setPendingZoneId(null);
+
+    try {
+      await ZoneController.requestActiveZoneStop();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const activeZoneSecondsRemaining = (() => {
+    if (!systemStatus?.activeZoneEnd) {
+      return null;
+    }
+
+    const endTime = new Date(systemStatus.activeZoneEnd).getTime();
+    if (Number.isNaN(endTime)) {
+      return null;
+    }
+
+    return Math.max(0, Math.ceil((endTime - currentTime) / 1000));
+  })();
+
+  const isStopping = activeZoneSecondsRemaining === 0 && systemStatus?.activeZone !== null;
 
   const renderZone = (zone: Zone) => {
     const isEditing = editingZone === zone.id;
@@ -224,25 +272,29 @@ export function ZoneManager({}: ZoneManagerProps) {
           {systemStatus?.activeZone?.id !== zone.id ? (
             !isEditing && (
               <button
-              onClick={() => handleStartZone(zone.id)}
+              onClick={() => void handleStartZone(zone.id)}
               className={`px-2 py-1 text-sm rounded-md ${
-                zone.enabled
+                zone.enabled && pendingZoneId === null
                 ? 'bg-green-600 text-white hover:bg-green-700'
                 : 'bg-gray-400 text-gray-200 cursor-not-allowed'
               }`}
-              disabled={!zone.enabled}
+              disabled={!zone.enabled || pendingZoneId !== null}
               title="Run Zone"
               >
-              Run
+              {pendingZoneId === zone.id ? 'Starting...' : 'Run'}
               </button>
             )
           ) : (
             <button
-              onClick={handleStopZone}
+              onClick={() => void handleStopZone()}
               className="px-2 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
               title="Stop Zone"
             >
-              Stop
+              {isStopping
+                ? 'Stopping...'
+                : activeZoneSecondsRemaining !== null
+                  ? `Stop (${activeZoneSecondsRemaining}s)`
+                  : 'Stop'}
             </button>
           )}
         </div>

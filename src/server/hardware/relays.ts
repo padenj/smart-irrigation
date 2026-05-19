@@ -1,4 +1,3 @@
-import { Gpio as RealGpio } from 'pigpio';
 import { IRelayController } from '../types/hardware';
 import dotenv from 'dotenv';
 import { ValidPorts } from '../../shared/zones';
@@ -7,6 +6,11 @@ dotenv.config({ path: '.env.local' });
 const PINS = ValidPorts;
 interface IGpio {
     digitalWrite(value: 0 | 1): void;
+}
+
+interface GpioConstructor {
+    new (pin: number, options: { mode: number }): IGpio;
+    OUTPUT: number;
 }
 
 class MockGpio implements IGpio {
@@ -21,7 +25,19 @@ class MockGpio implements IGpio {
     public static OUTPUT = 1; // Mock OUTPUT mode
 }
 
-const Gpio = process.env.MOCK_HARDWARE === 'true' ? MockGpio : RealGpio;
+const Gpio: GpioConstructor = await (async () => {
+    if (process.env.MOCK_HARDWARE === 'true') {
+        return MockGpio;
+    }
+
+    try {
+        const { Gpio } = await import('pigpio');
+        return Gpio as GpioConstructor;
+    } catch (error) {
+        console.error('Error loading pigpio, falling back to mock hardware:', error);
+        return MockGpio;
+    }
+})();
 
 class RelayController implements IRelayController {
     private static instance: RelayController;

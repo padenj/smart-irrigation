@@ -1,10 +1,11 @@
 import React from "react";
 import { remult } from "remult";
 import { DateTimeUtils } from "../server/utilities/DateTimeUtils";
-import { Program } from "../shared/programs";
+import type { Program } from "../shared/programs";
 import { Clock, Waves } from "lucide-react";
 import { useSettingsContext } from "../hooks/SettingsContext";
 import { useStatusContext } from "../hooks/StatusContext";
+import { ProgramDto } from "../server/dto/ProgramDto";
 
 
 export const ScheduleCard: React.FC = () => {
@@ -14,7 +15,7 @@ export const ScheduleCard: React.FC = () => {
         return "Loading...";
     }
 
-    const programRepo = remult.repo(Program);
+    const programRepo = remult.repo(ProgramDto);
     const [scheduledPrograms, setScheduledPrograms] = React.useState<
         { program: Program; nextScheduledRunTime: Date | null; isRunning: boolean }[]
     >([]);

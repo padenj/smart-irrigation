@@ -1,16 +1,16 @@
 import { remult } from 'remult';
-import { SystemSettings } from '../../shared/systemSettings';
-import { SystemStatus } from '../../shared/systemStatus';
 import { fetchWeather as fetchOpenWeatherMapApi } from '../integrations/openWeatherMap';
 import { fetchWeather as fetchWeatherApi } from '../integrations/weatherApi';
 import { DateTimeUtils } from '../utilities/DateTimeUtils';
 import { DisplayController } from './DisplayController';
 import { WeatherData } from '../../shared/weatherData';
+import { SystemSettingsDto } from '../dto/SystemSettingsDto';
+import { SystemStatusDto } from '../dto/SystemStatusDto';
 
 export class WeatherController {
     static async RetrieveWeather(forceUpdate: boolean): Promise<void> {
-        const settingsRepo = remult.repo(SystemSettings);
-        const statusRepo = remult.repo(SystemStatus);
+        const settingsRepo = remult.repo(SystemSettingsDto);
+        const statusRepo = remult.repo(SystemStatusDto);
 
         const settings = await settingsRepo.findFirst();
         if (!settings) {
@@ -18,7 +18,7 @@ export class WeatherController {
         }
 
 
-        const systemStatus = await statusRepo.findFirst() || new SystemStatus();
+        const systemStatus = await statusRepo.findFirst() || new SystemStatusDto();
         if (!forceUpdate && systemStatus.weatherData?.lastUpdated && systemStatus.weatherData.service === settings.weatherService) {
             const lastUpdated = DateTimeUtils.fromISODateTime(systemStatus.weatherData.lastUpdated, settings.timezone);
             if (!lastUpdated) {

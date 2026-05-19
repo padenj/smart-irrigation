@@ -1,16 +1,17 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { remult } from 'remult';
-import { SystemSettings } from '../shared/systemSettings';
+import type { SystemSettings } from '../shared/systemSettings';
+import { SystemSettingsDto } from '../server/dto/SystemSettingsDto';
 
 
-const SettingsContext = createContext<SystemSettings>(new SystemSettings());
+const SettingsContext = createContext<SystemSettings>(new SystemSettingsDto());
 
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [settings, setSettings] = useState<SystemSettings>(new SystemSettings());
+    const [settings, setSettings] = useState<SystemSettings>(new SystemSettingsDto());
 
     const fetchSettings = async () => {
         try {
-            const systemSettingsRepo = remult.repo(SystemSettings);
+            const systemSettingsRepo = remult.repo(SystemSettingsDto);
             const systemSettings = await systemSettingsRepo.findFirst(); 
             if (!systemSettings) {
                 console.error('No system settings found');

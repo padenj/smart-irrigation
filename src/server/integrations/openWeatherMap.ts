@@ -1,9 +1,10 @@
 import axios from 'axios';
 import { remult } from 'remult';
-import { SystemSettings, WeatherServiceSettings } from '../../shared/systemSettings';
+import type { SystemSettings, WeatherServiceSettings } from '../../shared/systemSettings';
 import { WeatherCurrentData, WeatherData, WeatherForecastData } from '../../shared/weatherData';
 import { LogController } from '../controllers/LogController';
 import { DateTimeUtils } from '../utilities/DateTimeUtils';
+import { SystemSettingsDto } from '../dto/SystemSettingsDto';
 
 
 interface ServiceData {
@@ -163,14 +164,14 @@ const updateLocation = async (settings: SystemSettings, owmSettings: WeatherServ
         }
 
         settings.weatherServiceSettings['openweathermap'] = {...owmSettings, data};
-        await remult.repo(SystemSettings).save(settings);
+        await remult.repo(SystemSettingsDto).save(settings);
     }
 
     return data;
 }
 
 export async function fetchWeather(): Promise<WeatherData|null> {
-    const settings = await remult.repo(SystemSettings).findFirst();
+    const settings = await remult.repo(SystemSettingsDto).findFirst();
 
     if (!settings) {
         console.log('Missing required system settings for weather API');
@@ -180,7 +181,7 @@ export async function fetchWeather(): Promise<WeatherData|null> {
 
     if (!settings.weatherServiceSettings['openweathermap']) {
         settings.weatherServiceSettings['openweathermap'] = { apiKey: '', location: '', updateInterval: 15 };
-        await remult.repo(SystemSettings).save(settings);
+        await remult.repo(SystemSettingsDto).save(settings);
     }
 
     const owmSettings = settings.weatherServiceSettings['openweathermap'];
@@ -221,7 +222,7 @@ export async function fetchWeather(): Promise<WeatherData|null> {
     serviceData.dailyInvocations += 1;
     serviceData.lastInvocation = now;
     settings.weatherServiceSettings['openweathermap'] = { ...owmSettings };
-    await remult.repo(SystemSettings).save(settings);
+    await remult.repo(SystemSettingsDto).save(settings);
 
     if (serviceData.dailyInvocations >= 750) {
         LogController.writeLog('Exceeded daily invocation limit of 750 for OpenWeatherMap API', 'ERROR');

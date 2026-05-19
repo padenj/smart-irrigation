@@ -1,15 +1,21 @@
-import { openPromisified, PromisifiedBus } from 'i2c-bus';
-import ADS1115 from 'ads1115';
-import { SystemSettings } from '../../shared/systemSettings';
+import type { SystemSettings } from '../../shared/systemSettings';
 import dotenv from 'dotenv';
 import { IAtoDController } from '../types/hardware';
 import { i2cMutex } from './i2cLock';
 dotenv.config({ path: '.env.local' });
 
+type I2cBusLike = {
+    close(): Promise<void>;
+};
+
+type Ads1115Like = {
+    measure(channel: string): Promise<number>;
+};
+
 class ADS1115Wrapper implements IAtoDController {
     private static instance: ADS1115Wrapper | null = null;
-    private bus: PromisifiedBus | null = null;
-    private ads1115: any = null;
+    private bus: I2cBusLike | null = null;
+    private ads1115: Ads1115Like | null = null;
     private isMocked: boolean;
     private calibrationValue: number = 0;
 
@@ -24,27 +30,35 @@ class ADS1115Wrapper implements IAtoDController {
         return ADS1115Wrapper.instance;
     }
 
+    private createMockAds1115(): Ads1115Like {
+        return {
+            measure: async (channel: string) => {
+                console.log(`Mock measure called for channel: ${channel}`);
+                return Math.floor(Math.random() * 32001);
+            },
+        };
+    }
+
     public async initialize(settings: SystemSettings) {
         if (this.isMocked) {
-            this.ads1115 = {
-                measure: async (channel: string) => {
-                    console.log(`Mock measure called for channel: ${channel}`);
-                    return Math.floor(Math.random() * 32001); // Random value between 0 and 32000
-                },
-            };
+            this.ads1115 = this.createMockAds1115();
         } else {
             try {
+                const [{ openPromisified }, { default: ADS1115 }] = await Promise.all([
+                    import('i2c-bus'),
+                    import('ads1115'),
+                ]);
                 const busNumber = 1; // Default I2C bus number
                 await i2cMutex.runExclusive(async () => {
                     this.bus = await openPromisified(busNumber);
-                    //console.log(`I2C bus ${busNumber} opened`, this.bus);
                     const address = settings ? settings.analogDigitalAddress : 0x48; // Default address // Retrieve address from Settings
                     this.ads1115 = await ADS1115(this.bus, address);
                     console.log(`ADS1115 initialized at address ${address}`);
                 });
             } catch (error) {
-                console.error('Error initializing ADS1115:', error);
-                throw error;
+                console.error('Error initializing ADS1115, falling back to mock hardware:', error);
+                this.isMocked = true;
+                this.ads1115 = this.createMockAds1115();
             }
         }
     }
@@ -83,4 +97,3 @@ export default await ADS1115Wrapper.getInstance(); // Initialize the instance
 //         await adsWrapper.dispose();
 //     }
 // })();
-

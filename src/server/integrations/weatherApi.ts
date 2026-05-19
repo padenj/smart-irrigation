@@ -1,11 +1,11 @@
 import axios from 'axios';
 import { remult } from 'remult';
-import { SystemSettings } from '../../shared/systemSettings';
 import { WeatherData, WeatherForecastData } from '../../shared/weatherData';
 import { LogController } from '../controllers/LogController';
+import { SystemSettingsDto } from '../dto/SystemSettingsDto';
 
 export async function fetchWeather(): Promise<WeatherData|null> {
-    const settings = await remult.repo(SystemSettings).findFirst();
+    const settings = await remult.repo(SystemSettingsDto).findFirst();
     if (!settings) {
         console.log('Missing required system settings for weather API');
         LogController.writeLog('Missing required system settings for weather API', 'WARNING');
@@ -22,7 +22,7 @@ export async function fetchWeather(): Promise<WeatherData|null> {
             location: '',
             updateInterval: 60, // default to 60 minutes
         };
-        await remult.repo(SystemSettings).save(settings);
+        await remult.repo(SystemSettingsDto).save(settings);
     }
 
     const { apiKey, location } = settings.weatherServiceSettings['weatherapi'];

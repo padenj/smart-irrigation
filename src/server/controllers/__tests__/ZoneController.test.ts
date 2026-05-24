@@ -22,6 +22,7 @@ vi.mock('remult', () => {
         boolean: makeDecorator,
         number: makeDecorator,
         date: makeDecorator,
+        object: makeDecorator,
     };
 
     return {
@@ -52,6 +53,7 @@ vi.mock('../DisplayController', () => ({
 vi.mock('../LogController', () => ({
     LogController: {
         writeLog: vi.fn().mockResolvedValue(undefined),
+        writeEvent: vi.fn().mockResolvedValue(undefined),
     },
 }));
 

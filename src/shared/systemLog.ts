@@ -1,5 +1,37 @@
 import { Entity, Fields } from "remult";
 
+export type LogLevel = 'INFO' | 'WARNING' | 'ERROR';
+
+export type LogSource =
+    | 'system'
+    | 'scheduler'
+    | 'program'
+    | 'zone'
+    | 'relay'
+    | 'health'
+    | 'sensor'
+    | 'weather'
+    | 'display';
+
+export type LogEventType =
+    | 'program-start'
+    | 'program-stop-requested'
+    | 'program-stopped'
+    | 'program-completed'
+    | 'zone-start'
+    | 'zone-stop-requested'
+    | 'zone-stopped'
+    | 'zone-divergence'
+    | 'relay-on'
+    | 'relay-off'
+    | 'relay-reconciled'
+    | 'health-anomaly'
+    | 'health-summary'
+    | 'system-init'
+    | 'state-change';
+
+export type LogDetails = Record<string, unknown>;
+
 @Entity("systemLogs", {
     allowApiCrud: true
 })
@@ -18,7 +50,20 @@ export class SystemLog {
             }
         }
     })
-    level!: 'INFO' | 'WARNING' | 'ERROR'; // e.g., "INFO", "WARNING", "ERROR"
+    level!: LogLevel; // e.g., "INFO", "WARNING", "ERROR"
+
+    @Fields.string<SystemLog>({
+        allowNull: true,
+    })
+    source: LogSource | null = null;
+
+    @Fields.string<SystemLog>({
+        allowNull: true,
+    })
+    eventType: LogEventType | null = null;
+
+    @Fields.json<SystemLog>()
+    details: LogDetails | null = null;
 
     @Fields.boolean()
     highlight = false; // For highlighting in the UI

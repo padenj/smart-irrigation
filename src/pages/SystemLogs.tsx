@@ -127,6 +127,16 @@ export function SystemLogs({ }: SystemLogsProps) {
                   <p className="text-sm font-medium text-gray-900">
                   {log.message}
                   </p>
+                  {(log.source || log.eventType) && (
+                    <p className="text-xs text-gray-600 mt-1">
+                      {[log.source, log.eventType].filter(Boolean).join(' · ')}
+                    </p>
+                  )}
+                  {log.details && (
+                    <pre className="mt-2 text-xs text-gray-700 whitespace-pre-wrap break-words bg-white/60 rounded p-2 overflow-x-auto">
+                      {JSON.stringify(log.details, null, 2)}
+                    </pre>
+                  )}
                   <p className="text-xs text-gray-500">
                   {log.timestamp.toLocaleString()}
                   </p>

@@ -5,6 +5,7 @@ import { Program } from '../../../shared/programs';
 vi.mock('../ZoneController', () => ({
     ZoneController: {
         runZone: vi.fn(),
+        runZoneBlocking: vi.fn(),
         stopZone: vi.fn(),
     },
 }));
@@ -12,7 +13,7 @@ vi.mock('../ZoneController', () => ({
 vi.mock('../LogController', () => ({
     LogController: {
         writeLog: vi.fn(),
-        
+        writeEvent: vi.fn(),
     },
 }));
 vi.mock('../DisplayController', () => ({

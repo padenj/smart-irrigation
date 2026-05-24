@@ -84,6 +84,7 @@ vi.mock('../HistoryController', () => ({
 vi.mock('../LogController', () => ({
     LogController: {
         writeLog: vi.fn(),
+        writeEvent: vi.fn(),
     },
 }));
 

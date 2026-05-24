@@ -6,6 +6,12 @@ import { SystemStatusDto } from "../dto/SystemStatusDto.js";
 
 
 export class HistoryController {
+    private static readonly MAX_SNAPSHOTS = 5000;
+    private static readonly MAX_SNAPSHOT_AGE_DAYS = 30;
+    private static readonly PRUNE_INTERVAL_MS = 6 * 60 * 60 * 1000;
+    private static lastPruneScheduledAt = 0;
+    private static pruneInFlight: Promise<void> | null = null;
+
     /**
      * Saves a snapshot of the current system status to the database.
      * @param systemStatus The current system status object to snapshot.
@@ -53,6 +59,56 @@ export class HistoryController {
         });
 
         await snapshotRepo.save(snapshot);
+        HistoryController.scheduleRetentionPrune();
         return snapshot;
+    }
+
+    private static scheduleRetentionPrune(): void {
+        const now = Date.now();
+        if (HistoryController.pruneInFlight || now - HistoryController.lastPruneScheduledAt < HistoryController.PRUNE_INTERVAL_MS) {
+            return;
+        }
+
+        HistoryController.lastPruneScheduledAt = now;
+        setTimeout(() => {
+            HistoryController.pruneInFlight = HistoryController.pruneRetention().finally(() => {
+                HistoryController.pruneInFlight = null;
+            });
+        }, 0);
+    }
+
+    private static async pruneRetention(): Promise<void> {
+        const snapshotRepo = repo(SystemStatusSnapshot);
+        const cutoff = DateTimeUtils.toISODateTime(
+            new Date(Date.now() - HistoryController.MAX_SNAPSHOT_AGE_DAYS * 24 * 60 * 60 * 1000),
+            'UTC'
+        ) ?? '';
+
+        const expiredSnapshots = await snapshotRepo.find({
+            where: {
+                timestamp: { $lt: cutoff },
+            },
+            orderBy: { timestamp: 'asc' },
+            limit: 500,
+        });
+
+        for (const snapshot of expiredSnapshots) {
+            await snapshotRepo.delete(snapshot.id);
+        }
+
+        const totalSnapshots = await snapshotRepo.count();
+        const overflow = totalSnapshots - HistoryController.MAX_SNAPSHOTS;
+        if (overflow <= 0) {
+            return;
+        }
+
+        const oldestSnapshots = await snapshotRepo.find({
+            orderBy: { timestamp: 'asc' },
+            limit: overflow,
+        });
+
+        for (const snapshot of oldestSnapshots) {
+            await snapshotRepo.delete(snapshot.id);
+        }
     }
 }

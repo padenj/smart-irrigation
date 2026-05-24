@@ -196,9 +196,32 @@ console.log(`Calculating next schedule date for program ${program.name}`);
                 }
             }
 
-            LogController.writeLog(`Running program ${program.name}`);
+            LogController.writeEvent(
+                `Running program ${program.name}`,
+                'INFO',
+                'program',
+                'program-start',
+                {
+                    programId: program.id,
+                    programName: program.name,
+                    isManual: false,
+                    zoneCount: program.zones.length,
+                }
+            );
         } else {
-            LogController.writeLog(`Manual - Running program ${program.name}`, "INFO", true);
+            LogController.writeEvent(
+                `Manual - Running program ${program.name}`,
+                "INFO",
+                'program',
+                'program-start',
+                {
+                    programId: program.id,
+                    programName: program.name,
+                    isManual: true,
+                    zoneCount: program.zones.length,
+                },
+                true
+            );
         }
         
         DisplayController.setActiveProgram(program.name);
@@ -220,13 +243,34 @@ console.log(`Calculating next schedule date for program ${program.name}`);
 
             if (!currentSystemStatus || currentSystemStatus.activeProgram?.id !== program.id) {
                 console.log(`Program ${program.name} has been manually stopped or replaced. Aborting.`);
-                LogController.writeLog(`Program ${program.name} has been manually stopped`, "WARNING");
+                LogController.writeEvent(
+                    `Program ${program.name} has been manually stopped`,
+                    "WARNING",
+                    'program',
+                    'program-stopped',
+                    {
+                        programId: program.id,
+                        programName: program.name,
+                        replacementProgramId: currentSystemStatus?.activeProgram?.id ?? null,
+                        replacementProgramName: currentSystemStatus?.activeProgram?.name ?? null,
+                    }
+                );
                 break;
             }
             await ZoneController.runZoneBlocking(zone.zoneId, zone.duration);
         }
 
-        LogController.writeLog(`Program ${program.name} completed`);
+        LogController.writeEvent(
+            `Program ${program.name} completed`,
+            'INFO',
+            'program',
+            'program-completed',
+            {
+                programId: program.id,
+                programName: program.name,
+                zoneCount: program.zones.length,
+            }
+        );
         // Clear the active program in the system status
         if (systemStatus) {
             await systemStatusRepository.update(systemStatus.id, { activeProgram: null });
@@ -300,16 +344,37 @@ console.log(`Calculating next schedule date for program ${program.name}`);
         }
 
         const program = systemStatus.activeProgram;
+        await LogController.writeEvent(
+            `Program ${program.name} stop requested`,
+            'INFO',
+            'program',
+            'program-stop-requested',
+            {
+                programId: program.id,
+                programName: program.name,
+                zoneCount: program.zones.length,
+            }
+        );
 
         // Iterate through the zones of the active program and turn them off
         for (const zone of program.zones) {
-            await ZoneController.stopZone(zone.zoneId);
+            await ZoneController.stopZone(zone.zoneId, 'program-stop');
         }
 
         // Clear the active program and zone in the system status
         await systemStatusRepository.update(0, { activeProgram: null, activeZone: null });
 
-        LogController.writeLog(`Program ${program.name} stopped and all zones turned off.`);
+        LogController.writeEvent(
+            `Program ${program.name} stopped and all zones turned off.`,
+            'INFO',
+            'program',
+            'program-stopped',
+            {
+                programId: program.id,
+                programName: program.name,
+                zoneCount: program.zones.length,
+            }
+        );
         console.log('Active program stopped and all zones turned off.');
         DisplayController.setActiveProgram();
         return "Active program stopped successfully.";

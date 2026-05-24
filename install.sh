@@ -6,6 +6,8 @@ REPO_NAME="smart-irrigation"
 INSTALL_DIR="/opt/smart-irrigation"
 SERVICE_NAME="smart-irrigation"
 UPDATE_SCRIPT_PATH="/usr/local/bin/update-smart-irrigation.sh"
+JOURNALD_OVERRIDE_DIR="/etc/systemd/journald.conf.d"
+JOURNALD_OVERRIDE_FILE="$JOURNALD_OVERRIDE_DIR/smart-irrigation.conf"
 
 # Step 1: Ensure the user has root privileges
 if [ "$EUID" -ne 0 ]; then
@@ -22,6 +24,16 @@ fi
 
 # Step 2: Install necessary dependencies
 apt update && apt install -y jq unzip curl wget
+
+# Step 2b: Cap persistent journal growth so logs do not fill the SD card
+mkdir -p "$JOURNALD_OVERRIDE_DIR"
+cat <<EOF > "$JOURNALD_OVERRIDE_FILE"
+[Journal]
+SystemMaxUse=200M
+SystemMaxFileSize=50M
+EOF
+systemctl restart systemd-journald
+journalctl --vacuum-size=200M || true
 
 # Step 3: Create a directory for the application
 mkdir -p "$INSTALL_DIR"
@@ -83,6 +95,14 @@ if [ "\$LATEST_RELEASE" != "\$CURRENT_VERSION" ]; then
   cd "$INSTALL_DIR"
   npm ci --omit=dev
   echo "\$LATEST_RELEASE" > "$INSTALL_DIR/.version"
+  mkdir -p "$JOURNALD_OVERRIDE_DIR"
+  cat <<EOJ > "$JOURNALD_OVERRIDE_FILE"
+[Journal]
+SystemMaxUse=200M
+SystemMaxFileSize=50M
+EOJ
+  systemctl restart systemd-journald
+  journalctl --vacuum-size=200M || true
   systemctl restart "$SERVICE_NAME"
   echo "Update complete!"
 else

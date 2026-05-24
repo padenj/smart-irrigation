@@ -4,6 +4,7 @@ import { useStatusContext } from '../hooks/StatusContext';
 import WeatherCard from '../components/WeatherCard';
 import { ScheduleCard } from '../components/ScheduleCard';
 import { SensorReadingsCard } from '../components/SensorReadingsCard';
+import { SystemHealthCard } from '../components/SystemHealthCard';
 
 interface DashboardProps {
 }
@@ -28,6 +29,8 @@ export function Dashboard({}: DashboardProps) {
       
       {/* Sensor Readings */}
       <SensorReadingsCard />
+
+      <SystemHealthCard />
       
       {/* System Status */}
       <SystemStatusCard />

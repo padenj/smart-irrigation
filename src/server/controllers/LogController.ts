@@ -11,9 +11,6 @@ export class LogController {
     private static readonly MAX_LOG_ENTRY_DETAILS_LENGTH = 2048;
     private static readonly MAX_LOG_ENTRIES = 2000;
     private static readonly MAX_LOG_AGE_DAYS = 30;
-    private static readonly PRUNE_INTERVAL_MS = 60 * 60 * 1000;
-    private static lastPruneScheduledAt = 0;
-    private static pruneInFlight: Promise<void> | null = null;
 
     static async writeLog(
         message: string,
@@ -33,8 +30,6 @@ export class LogController {
             eventType: metadata.eventType ?? null,
             details: LogController.sanitizeDetails(metadata.details),
         });
-
-        LogController.scheduleRetentionPrune();
     }
 
     static async writeEvent(
@@ -64,21 +59,7 @@ export class LogController {
         };
     }
 
-    private static scheduleRetentionPrune(): void {
-        const now = Date.now();
-        if (LogController.pruneInFlight || now - LogController.lastPruneScheduledAt < LogController.PRUNE_INTERVAL_MS) {
-            return;
-        }
-
-        LogController.lastPruneScheduledAt = now;
-        setTimeout(() => {
-            LogController.pruneInFlight = LogController.pruneRetention().finally(() => {
-                LogController.pruneInFlight = null;
-            });
-        }, 0);
-    }
-
-    private static async pruneRetention(): Promise<void> {
+    static async pruneRetention(): Promise<void> {
         const logRepo = remult.repo(SystemLog);
         const cutoff = new Date(Date.now() - LogController.MAX_LOG_AGE_DAYS * 24 * 60 * 60 * 1000);
 
@@ -87,7 +68,7 @@ export class LogController {
                 timestamp: { $lt: cutoff },
             },
             orderBy: { timestamp: 'asc' },
-            limit: 500,
+            limit: 100,
         });
 
         for (const log of expiredLogs) {
@@ -102,7 +83,7 @@ export class LogController {
 
         const oldestLogs = await logRepo.find({
             orderBy: { timestamp: 'asc' },
-            limit: overflow,
+            limit: Math.min(overflow, 100),
         });
 
         for (const log of oldestLogs) {

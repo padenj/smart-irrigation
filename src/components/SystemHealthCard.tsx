@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Activity, HardDrive, ShieldAlert, TriangleAlert } from 'lucide-react';
-import { SystemController } from '../server/controllers/SystemController';
 import type { SystemHealthSummary } from '../shared/systemHealth';
 import { DateTimeUtils } from '../server/utilities/DateTimeUtils';
 import { useSettingsContext } from '../hooks/SettingsContext';
@@ -32,8 +31,19 @@ export function SystemHealthCard() {
     useEffect(() => {
         const loadHealth = async () => {
             try {
-                const summary = await SystemController.getHealthSummary();
-                setHealth(summary);
+                const response = await fetch('/api/system/getHealthSummary', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ args: [] }),
+                });
+                if (!response.ok) {
+                    throw new Error(`Health request failed with ${response.status}`);
+                }
+
+                const summary = await response.json() as SystemHealthSummary | { result?: SystemHealthSummary };
+                setHealth('result' in summary && summary.result ? summary.result : summary);
             } catch (error) {
                 console.error('Failed to load system health summary:', error);
             }

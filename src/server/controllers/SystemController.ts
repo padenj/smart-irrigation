@@ -100,6 +100,13 @@ export class SystemController {
     }
 
     @BackendMethod({ allowed: true, apiPrefix: 'system' })
+    static async pruneRetention() {
+        await HistoryController.pruneRetention();
+        await LogController.pruneRetention();
+        return 'Retention pruning completed successfully';
+    }
+
+    @BackendMethod({ allowed: true, apiPrefix: 'system' })
     static async getHealthSummary(forceRefresh = false): Promise<SystemHealthSummary> {
         if (!forceRefresh && SystemController.cachedHealthSummary && Date.now() - SystemController.cachedHealthSummary.createdAtMs < SystemController.HEALTH_CACHE_TTL_MS) {
             return SystemController.cachedHealthSummary.value;

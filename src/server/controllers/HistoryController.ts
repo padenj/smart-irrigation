@@ -8,9 +8,6 @@ import { SystemStatusDto } from "../dto/SystemStatusDto.js";
 export class HistoryController {
     private static readonly MAX_SNAPSHOTS = 5000;
     private static readonly MAX_SNAPSHOT_AGE_DAYS = 30;
-    private static readonly PRUNE_INTERVAL_MS = 6 * 60 * 60 * 1000;
-    private static lastPruneScheduledAt = 0;
-    private static pruneInFlight: Promise<void> | null = null;
 
     /**
      * Saves a snapshot of the current system status to the database.
@@ -59,25 +56,10 @@ export class HistoryController {
         });
 
         await snapshotRepo.save(snapshot);
-        HistoryController.scheduleRetentionPrune();
         return snapshot;
     }
 
-    private static scheduleRetentionPrune(): void {
-        const now = Date.now();
-        if (HistoryController.pruneInFlight || now - HistoryController.lastPruneScheduledAt < HistoryController.PRUNE_INTERVAL_MS) {
-            return;
-        }
-
-        HistoryController.lastPruneScheduledAt = now;
-        setTimeout(() => {
-            HistoryController.pruneInFlight = HistoryController.pruneRetention().finally(() => {
-                HistoryController.pruneInFlight = null;
-            });
-        }, 0);
-    }
-
-    private static async pruneRetention(): Promise<void> {
+    static async pruneRetention(): Promise<void> {
         const snapshotRepo = repo(SystemStatusSnapshot);
         const cutoff = DateTimeUtils.toISODateTime(
             new Date(Date.now() - HistoryController.MAX_SNAPSHOT_AGE_DAYS * 24 * 60 * 60 * 1000),
@@ -89,7 +71,7 @@ export class HistoryController {
                 timestamp: { $lt: cutoff },
             },
             orderBy: { timestamp: 'asc' },
-            limit: 500,
+            limit: 25,
         });
 
         for (const snapshot of expiredSnapshots) {
@@ -104,7 +86,7 @@ export class HistoryController {
 
         const oldestSnapshots = await snapshotRepo.find({
             orderBy: { timestamp: 'asc' },
-            limit: overflow,
+            limit: Math.min(overflow, 25),
         });
 
         for (const snapshot of oldestSnapshots) {

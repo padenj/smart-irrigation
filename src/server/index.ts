@@ -133,6 +133,14 @@ cron.schedule('0 * * * * *', () => {
     });
 });
 
+// Run retention pruning once daily during overnight hours to avoid blocking active use
+cron.schedule('30 2 * * *', () => {
+  axios.post(`${`http://localhost:${port}`}/api/system/pruneRetention`, {"args":[]})
+    .catch(error => {
+      console.error('Error pruning retention data:', error.message);
+    });
+});
+
 // Set up the daily system refresh job
 cron.schedule('0 0 * * *', async () => {
   console.log('Running daily task to refresh the system');

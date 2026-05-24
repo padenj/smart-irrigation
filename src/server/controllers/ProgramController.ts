@@ -303,7 +303,7 @@ console.log(`Calculating next schedule date for program ${program.name}`);
 
         // Iterate through the zones of the active program and turn them off
         for (const zone of program.zones) {
-            ZoneController.stopZone(zone.zoneId);
+            await ZoneController.stopZone(zone.zoneId);
         }
 
         // Clear the active program and zone in the system status

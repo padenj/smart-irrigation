@@ -16,8 +16,45 @@ type ZoneRunContext = {
     endTimeMs: number;
 };
 
+type ActiveZoneRun = {
+    context: ZoneRunContext;
+    stopRequested: boolean;
+};
+
 export class ZoneController {
     static relays: IRelayController;
+    private static activeZoneRuns = new Map<string, ActiveZoneRun>();
+
+    private static registerZoneRun(context: ZoneRunContext): void {
+        ZoneController.activeZoneRuns.set(context.zoneId, { context, stopRequested: false });
+    }
+
+    private static getZoneRunState(context: ZoneRunContext): ActiveZoneRun | null {
+        const zoneRun = ZoneController.activeZoneRuns.get(context.zoneId);
+        return zoneRun?.context === context ? zoneRun : null;
+    }
+
+    private static requestZoneRunStop(zoneId?: string): void {
+        if (!zoneId) {
+            return;
+        }
+
+        const zoneRun = ZoneController.activeZoneRuns.get(zoneId);
+        if (zoneRun) {
+            zoneRun.stopRequested = true;
+        }
+    }
+
+    private static clearZoneRun(context: ZoneRunContext): void {
+        const zoneRun = ZoneController.activeZoneRuns.get(context.zoneId);
+        if (zoneRun?.context === context) {
+            ZoneController.activeZoneRuns.delete(context.zoneId);
+        }
+    }
+
+    private static forceRelayOff(zoneDefinition: Zone): void {
+        ZoneController.relays.turnOff(zoneDefinition.gpioPort);
+    }
 
     private static async createZoneRunContext(
         zoneId: string,
@@ -73,6 +110,7 @@ export class ZoneController {
         });
 
         ZoneController.relays.turnOn(context.zoneDefinition.gpioPort);
+        ZoneController.registerZoneRun(context);
 
         if (context.isManual) {
             void LogController.writeLog(
@@ -96,34 +134,52 @@ export class ZoneController {
     private static async monitorZoneRun(context: ZoneRunContext): Promise<void> {
         let lastDisplayedSeconds: number | null = null;
 
-        while (true) {
-            const currentSystemStatus = await systemStatusRepo.findFirst();
-            if (currentSystemStatus?.activeZone?.id !== context.zoneId) {
-                console.log(`Zone ${context.zoneDefinition.name} has been manually stopped or replaced. Aborting.`);
-                void LogController.writeLog(`Zone ${context.zoneDefinition.name} has been manually stopped`, "WARNING").catch((error) => {
-                    console.error('Failed to write zone stop warning log:', error);
-                });
-                return;
+        try {
+            while (true) {
+                const zoneRun = ZoneController.getZoneRunState(context);
+                if (zoneRun?.stopRequested) {
+                    return;
+                }
+
+                const currentSystemStatus = await systemStatusRepo.findFirst();
+                if (ZoneController.getZoneRunState(context)?.stopRequested) {
+                    return;
+                }
+
+                if (currentSystemStatus?.activeZone?.id !== context.zoneId) {
+                    ZoneController.forceRelayOff(context.zoneDefinition);
+
+                    const replacementZoneName = currentSystemStatus?.activeZone?.name;
+                    const mismatchMessage = replacementZoneName
+                        ? `Zone ${context.zoneDefinition.name} lost control to ${replacementZoneName}. Relay was forced off.`
+                        : `Zone ${context.zoneDefinition.name} lost active status unexpectedly. Relay was forced off.`;
+
+                    console.log(mismatchMessage);
+                    await LogController.writeLog(mismatchMessage, "WARNING");
+                    return;
+                }
+
+                const remainingMs = context.endTimeMs - Date.now();
+                if (remainingMs <= 0) {
+                    break;
+                }
+
+                const remainingSeconds = Math.ceil(remainingMs / 1000);
+                if (remainingSeconds !== lastDisplayedSeconds) {
+                    lastDisplayedSeconds = remainingSeconds;
+                    void DisplayController.setActiveZone(context.zoneDefinition.name, remainingSeconds).catch((error) => {
+                        console.error('Failed to update active zone countdown:', error);
+                    });
+                }
+
+                const msUntilNextSecond = remainingMs - (remainingSeconds - 1) * 1000;
+                await new Promise((resolve) => setTimeout(resolve, Math.max(1, Math.min(msUntilNextSecond, remainingMs))));
             }
 
-            const remainingMs = context.endTimeMs - Date.now();
-            if (remainingMs <= 0) {
-                break;
-            }
-
-            const remainingSeconds = Math.ceil(remainingMs / 1000);
-            if (remainingSeconds !== lastDisplayedSeconds) {
-                lastDisplayedSeconds = remainingSeconds;
-                void DisplayController.setActiveZone(context.zoneDefinition.name, remainingSeconds).catch((error) => {
-                    console.error('Failed to update active zone countdown:', error);
-                });
-            }
-
-            const msUntilNextSecond = remainingMs - (remainingSeconds - 1) * 1000;
-            await new Promise((resolve) => setTimeout(resolve, Math.max(1, Math.min(msUntilNextSecond, remainingMs))));
+            await ZoneController.stopZone(context.zoneId);
+        } finally {
+            ZoneController.clearZoneRun(context);
         }
-
-        await ZoneController.stopZone(context.zoneId);
     }
 
     static async runZoneBlocking(zoneId: string, duration: number, isManual: boolean = false) {
@@ -139,12 +195,16 @@ export class ZoneController {
     @BackendMethod({ allowed: true, apiPrefix: 'zones' })
     static async stopAllZones() {
         const systemStatus = await systemStatusRepo.findFirst();
+        for (const zoneRun of ZoneController.activeZoneRuns.values()) {
+            zoneRun.stopRequested = true;
+        }
+
         if (systemStatus) {
             const activeZone = systemStatus.activeZone;
             if (activeZone) {
                 console.log(`Stopping active zone: ${activeZone.name}`);
                 LogController.writeLog(`Stopping active zone: ${activeZone.name}`, "INFO");
-                ZoneController.stopZone(activeZone.id);
+                await ZoneController.stopZone(activeZone.id);
             }
         }
 
@@ -193,6 +253,7 @@ export class ZoneController {
     static async stopZone(zoneId?: string) {
         const zoneRepo = repo(Zone);
         const activeZone = (await systemStatusRepo.findFirst())?.activeZone?.id;
+        ZoneController.requestZoneRunStop(zoneId || activeZone);
 
         if (!zoneId && !activeZone) {
             console.error('No zone ID provided and no active zone found.');
@@ -223,6 +284,49 @@ export class ZoneController {
         console.log(`Zone ${zoneId} stopped successfully.`);
         // LogController.writeLog(`Zone ${zoneDefinition.name} stopped successfully.`);
         return `Zone ${zoneId} stopped successfully.`;
+    }
+
+    @BackendMethod({ allowed: true, apiPrefix: 'zones' })
+    static async reconcileRelayState() {
+        const [systemStatus, settings] = await Promise.all([
+            systemStatusRepo.findFirst(),
+            repo(SystemSettingsDto).findFirst(),
+        ]);
+
+        const timezone = settings?.timezone || 'UTC';
+        const activeZoneEnd = systemStatus?.activeZoneEnd
+            ? DateTimeUtils.fromISODateTime(systemStatus.activeZoneEnd, timezone)
+            : null;
+        const hasExpiredActiveZone = Boolean(
+            systemStatus?.activeZone &&
+            activeZoneEnd &&
+            activeZoneEnd.getTime() <= Date.now()
+        );
+
+        if (hasExpiredActiveZone && systemStatus?.activeZone) {
+            await LogController.writeLog(
+                `Active zone ${systemStatus.activeZone.name} exceeded its scheduled end time. Forcing the relay off.`,
+                "WARNING"
+            );
+            await ZoneController.stopZone(systemStatus.activeZone.id);
+        }
+
+        const refreshedSystemStatus = await systemStatusRepo.findFirst();
+        const expectedActivePort = refreshedSystemStatus?.activeZone?.gpioPort ?? null;
+
+        for (const pin of ValidPorts) {
+            if (pin === expectedActivePort) {
+                ZoneController.relays.turnOn(pin);
+            } else {
+                ZoneController.relays.turnOff(pin);
+            }
+        }
+
+        if (!expectedActivePort) {
+            void DisplayController.setActiveZone().catch((error) => {
+                console.error('Failed to clear active zone display during relay reconciliation:', error);
+            });
+        }
     }
 
 

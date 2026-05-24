@@ -13,18 +13,18 @@ import { SystemStatusDto } from '../dto/SystemStatusDto';
 export const systemStatusRepo = repo(SystemStatusDto);
 
 export class SystemController {
-    private static UpdateLastRunDate() {
-        systemStatusRepo.findFirst().then((systemStatus) => {
-            if (systemStatus) {
-                systemStatusRepo.update(0, { ...systemStatus, lastSchedulerRun: new Date() }).catch((error) => {
-                    console.error('Failed to update systemStatus:', error);
-                });
-            } else {
+    private static async updateLastRunDate() {
+        try {
+            const systemStatus = await systemStatusRepo.findFirst();
+            if (!systemStatus) {
                 console.error('SystemStatus not found');
+                return;
             }
-        }).catch((error) => {
-            console.error('Failed to fetch systemStatus:', error);
-        });
+
+            await systemStatusRepo.update(0, { lastSchedulerRun: new Date() });
+        } catch (error) {
+            console.error('Failed to update systemStatus:', error);
+        }
     }
 
     /**
@@ -36,7 +36,7 @@ export class SystemController {
         const systemSettings = await repo(SystemSettingsDto).findFirst();
 
         await SensorController.ReadSensorData();
-        SystemController.UpdateLastRunDate();
+        await SystemController.updateLastRunDate();
         DisplayController.setTime(systemSettings?.timezone|| 'UTC');
         await ProgramController.runNextScheduledProgram();
 
@@ -80,5 +80,11 @@ export class SystemController {
     static async daily() {
         ProgramController.recalculateAllSchedules();
         return "Daily tasks completed successfully";   
+    }
+
+    @BackendMethod({ allowed: true, apiPrefix: 'system' })
+    static async validateRelayState() {
+        await ZoneController.reconcileRelayState();
+        return "Relay state reconciliation completed successfully";
     }
 }

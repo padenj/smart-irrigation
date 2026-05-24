@@ -125,6 +125,14 @@ cron.schedule('*/15 * * * * *', () => {
     });
 });
 
+// Re-assert relay outputs once per minute so the hardware stays aligned with system status
+cron.schedule('0 * * * * *', () => {
+  axios.post(`${`http://localhost:${port}`}/api/system/validateRelayState`, {"args":[]})
+    .catch(error => {
+      console.error('Error reconciling relay state:', error.message);
+    });
+});
+
 // Set up the daily system refresh job
 cron.schedule('0 0 * * *', async () => {
   console.log('Running daily task to refresh the system');

@@ -5,13 +5,30 @@ import {
     ProgramSchedule,
 } from "../../shared/programs";
 
-function normalizeSchedule(schedule: ProgramSchedule): ProgramSchedule {
+function normalizeSchedule(
+    schedule: Partial<ProgramSchedule> & Pick<ProgramSchedule, "id">
+): ProgramSchedule {
+    const recurrenceType =
+        schedule.recurrenceType ??
+        (schedule.intervalDays != null
+            ? ProgramRecurrenceType.EVERY_N_DAYS
+            : ProgramRecurrenceType.DAYS_OF_WEEK);
+
     return {
-        ...schedule,
-        recurrenceType: schedule.recurrenceType ?? ProgramRecurrenceType.WEEKLY,
+        id: schedule.id,
+        startTime: schedule.startTime ?? "",
         isEnabled: schedule.isEnabled ?? true,
+        recurrenceType,
+        daysOfWeek:
+            recurrenceType === ProgramRecurrenceType.DAYS_OF_WEEK
+                ? [...(schedule.daysOfWeek ?? [])]
+                : [],
+        intervalDays:
+            recurrenceType === ProgramRecurrenceType.EVERY_N_DAYS
+                ? schedule.intervalDays ?? 1
+                : null,
+        lastScheduledRunTime: schedule.lastScheduledRunTime ?? null,
         nextScheduledRunTime: schedule.nextScheduledRunTime ?? null,
-        daysOfWeek: schedule.daysOfWeek ? [...schedule.daysOfWeek] : schedule.daysOfWeek,
     };
 }
 
@@ -31,9 +48,13 @@ export function normalizeProgramSchedules(program: Program): Program {
             schedules: [
                 normalizeSchedule({
                     id: randomUUID(),
-                    recurrenceType: ProgramRecurrenceType.WEEKLY,
                     startTime: program.startTime,
+                    isEnabled: true,
+                    recurrenceType: ProgramRecurrenceType.DAYS_OF_WEEK,
                     daysOfWeek: [...program.daysOfWeek],
+                    intervalDays: null,
+                    lastScheduledRunTime: null,
+                    nextScheduledRunTime: program.nextScheduledRunTime ?? null,
                 }),
             ],
         };

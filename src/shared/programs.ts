@@ -18,17 +18,23 @@ export type ProgramZoneDuration = {
     duration: number;
 }
 
-export enum ProgramRecurrenceType {
-    WEEKLY = "weekly",
-}
+export const ProgramRecurrenceType = {
+    DAYS_OF_WEEK: "daysOfWeek",
+    EVERY_N_DAYS: "everyNDays",
+} as const;
+
+export type ProgramRecurrenceType =
+    typeof ProgramRecurrenceType[keyof typeof ProgramRecurrenceType];
 
 export interface ProgramSchedule {
     id: string;
-    recurrenceType?: ProgramRecurrenceType;
-    startTime?: string;
-    daysOfWeek?: number[];
-    isEnabled?: boolean;
-    nextScheduledRunTime?: string | null;
+    startTime: string;
+    isEnabled: boolean;
+    recurrenceType: ProgramRecurrenceType;
+    daysOfWeek: number[];
+    intervalDays: number | null;
+    lastScheduledRunTime: string | null;
+    nextScheduledRunTime: string | null;
 }
 
 export interface Program {
@@ -37,7 +43,7 @@ export interface Program {
     startTime?: string;
     endTime?: string;
     daysOfWeek?: number[];
-    schedules?: ProgramSchedule[];
+    schedules: ProgramSchedule[];
     zones: ProgramZoneDuration[];
     isEnabled: boolean;
     nextScheduledRunTime: string | null;

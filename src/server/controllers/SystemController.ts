@@ -11,6 +11,8 @@ import { SystemSettingsDto } from '../dto/SystemSettingsDto';
 import { SystemStatusDto } from '../dto/SystemStatusDto';
 import { SystemLog } from '../../shared/systemLog';
 import type { SystemHealthSummary } from '../../shared/systemHealth';
+import type { UpdateStatus } from '../../shared/updateStatus';
+import { checkForUpdates, reconcileStaleUpdateStatus, startUpdateService } from '../utilities/updateStatus';
 
 export const systemStatusRepo = repo(SystemStatusDto);
 
@@ -164,6 +166,21 @@ export class SystemController {
         };
 
         return summary;
+    }
+
+    @BackendMethod({ allowed: true, apiPrefix: 'system' })
+    static async getUpdateStatus(): Promise<UpdateStatus> {
+        return reconcileStaleUpdateStatus();
+    }
+
+    @BackendMethod({ allowed: true, apiPrefix: 'system' })
+    static async checkForUpdates(forceRefresh = false): Promise<UpdateStatus> {
+        return checkForUpdates(process.cwd(), forceRefresh);
+    }
+
+    @BackendMethod({ allowed: true, apiPrefix: 'system' })
+    static async startUpdate(): Promise<UpdateStatus> {
+        return startUpdateService();
     }
 
     private static async collectStorageMetrics(): Promise<SystemHealthSummary['disk']> {

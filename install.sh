@@ -1,59 +1,77 @@
 #!/bin/bash
 
-# Variables
+set -Eeuo pipefail
+
 REPO_OWNER="padenj"
 REPO_NAME="smart-irrigation"
 INSTALL_DIR="/opt/smart-irrigation"
 SERVICE_NAME="smart-irrigation"
+UPDATE_SERVICE_NAME="smart-irrigation-update.service"
 UPDATE_SCRIPT_PATH="/usr/local/bin/update-smart-irrigation.sh"
+UPDATE_SERVICE_PATH="/etc/systemd/system/$UPDATE_SERVICE_NAME"
 JOURNALD_OVERRIDE_DIR="/etc/systemd/journald.conf.d"
 JOURNALD_OVERRIDE_FILE="$JOURNALD_OVERRIDE_DIR/smart-irrigation.conf"
+GITHUB_RELEASE_URL="https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest"
+STAGING_DIR="${INSTALL_DIR}.staging"
+BACKUP_DIR="${INSTALL_DIR}.previous"
+CRON_COMMAND="/bin/systemctl --no-block start $UPDATE_SERVICE_NAME"
 
-# Step 1: Ensure the user has root privileges
+log() {
+  printf '[%s] %s\n' "$(date --iso-8601=seconds)" "$*"
+}
+
 if [ "$EUID" -ne 0 ]; then
   echo "Please run this script as root."
   exit 1
 fi
 
-# Step 2: Install Node.js and npm
-if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
-  echo "Node.js and npm not found. Installing..."
-  curl -fsSL https://deb.nodesource.com/setup_20.x | bash - # Change Node.js version if needed
-  apt install -y nodejs
-fi
+install_system_dependencies() {
+  if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
+    log "Node.js and npm not found. Installing..."
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    apt install -y nodejs
+  fi
 
-# Step 2: Install necessary dependencies
-apt update && apt install -y jq unzip curl wget
+  apt update
+  apt install -y jq unzip curl wget util-linux
+}
 
-# Step 2b: Cap persistent journal growth so logs do not fill the SD card
-mkdir -p "$JOURNALD_OVERRIDE_DIR"
-cat <<EOF > "$JOURNALD_OVERRIDE_FILE"
+configure_journal_limits() {
+  mkdir -p "$JOURNALD_OVERRIDE_DIR"
+  cat <<EOF > "$JOURNALD_OVERRIDE_FILE"
 [Journal]
 SystemMaxUse=200M
 SystemMaxFileSize=50M
 EOF
-systemctl restart systemd-journald
-journalctl --vacuum-size=200M || true
+  systemctl restart systemd-journald
+  journalctl --vacuum-size=200M || true
+}
 
-# Step 3: Create a directory for the application
-mkdir -p "$INSTALL_DIR"
+fetch_latest_release() {
+  local release_file
+  release_file="$(mktemp)"
 
-# Step 4: Download the latest release and extract it
-LATEST_RELEASE=$(curl -s "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest" | jq -r '.tag_name')
-ZIP_URL=$(curl -s "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest" | jq -r '.assets[0].browser_download_url')
+  curl -fsSL \
+    -H 'Accept: application/vnd.github+json' \
+    -H 'User-Agent: smart-irrigation-installer' \
+    "$GITHUB_RELEASE_URL" \
+    -o "$release_file"
 
-echo "Downloading the latest release ($LATEST_RELEASE)..."
-curl -L -o /tmp/release-package.zip "$ZIP_URL"
-find "$INSTALL_DIR" -mindepth 1 -not -path "$INSTALL_DIR/db/*" -delete
-unzip /tmp/release-package.zip -d "$INSTALL_DIR"
-echo "$LATEST_RELEASE" > "$INSTALL_DIR/.version"
+  local latest_release zip_url
+  latest_release="$(jq -r '.tag_name // empty' "$release_file")"
+  zip_url="$(jq -r '[.assets[]? | select(.name != null and (.name | endswith(".zip")))] | .[0].browser_download_url // empty' "$release_file")"
+  rm -f "$release_file"
 
-# Run npm ci
-cd "$INSTALL_DIR"
-npm ci --omit=dev
+  if [ -z "$latest_release" ] || [ -z "$zip_url" ]; then
+    echo "Could not determine the latest release asset."
+    exit 1
+  fi
 
-# Step 5: Create the systemd service file
-cat <<EOF > "/etc/systemd/system/$SERVICE_NAME.service"
+  printf '%s\n%s\n' "$latest_release" "$zip_url"
+}
+
+write_app_service() {
+  cat <<EOF > "/etc/systemd/system/$SERVICE_NAME.service"
 [Unit]
 Description=Smart Irrigation System
 After=network.target
@@ -69,59 +87,94 @@ Environment=NODE_ENV=production
 [Install]
 WantedBy=multi-user.target
 EOF
- 
-# Step 6: Set up the update script
-cat <<EOF > "$UPDATE_SCRIPT_PATH"
-#!/bin/bash
- 
-# Ensure PATH includes npm's location
-for dir in /usr/local/bin /usr/bin /bin; do
-  if [[ ":$PATH:" != *":$dir:"* ]]; then
-    PATH="$PATH:$dir"
+}
+
+install_update_assets() {
+  local source_dir="$1"
+  install -m 755 "$source_dir/scripts/update-smart-irrigation.sh" "${UPDATE_SCRIPT_PATH}.tmp"
+  mv "${UPDATE_SCRIPT_PATH}.tmp" "$UPDATE_SCRIPT_PATH"
+
+  install -m 644 "$source_dir/scripts/smart-irrigation-update.service" "${UPDATE_SERVICE_PATH}.tmp"
+  mv "${UPDATE_SERVICE_PATH}.tmp" "$UPDATE_SERVICE_PATH"
+}
+
+configure_update_cron() {
+  local current_crontab filtered_file
+  current_crontab="$(mktemp)"
+  filtered_file="$(mktemp)"
+
+  crontab -l 2>/dev/null > "$current_crontab" || true
+  grep -v -F "/usr/local/bin/update-smart-irrigation.sh" "$current_crontab" | \
+    grep -v -F "$UPDATE_SERVICE_NAME" > "$filtered_file" || true
+
+  if ! grep -q -F "$CRON_COMMAND" "$filtered_file"; then
+    printf '0 * * * * %s\n' "$CRON_COMMAND" >> "$filtered_file"
   fi
-done
-export PATH
-echo "Current PATH: $PATH"
-LATEST_RELEASE=\$(curl -s "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest" | jq -r '.tag_name')
-ZIP_URL=\$(curl -s "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest" | jq -r '.assets[0].browser_download_url')
-CURRENT_VERSION=\$(cat $INSTALL_DIR/.version 2>/dev/null)
 
-if [ "\$LATEST_RELEASE" != "\$CURRENT_VERSION" ]; then
-  echo "New release detected: \$LATEST_RELEASE. Updating application..."
-  curl -L -o /tmp/release-package.zip "\$ZIP_URL"
-  find "$INSTALL_DIR" -mindepth 1 -not -path "$INSTALL_DIR/db/*" -delete
-  unzip /tmp/release-package.zip -d "$INSTALL_DIR"
-  echo "Running npm install"
-  cd "$INSTALL_DIR"
-  npm ci --omit=dev
-  echo "\$LATEST_RELEASE" > "$INSTALL_DIR/.version"
-  mkdir -p "$JOURNALD_OVERRIDE_DIR"
-  cat <<EOJ > "$JOURNALD_OVERRIDE_FILE"
-[Journal]
-SystemMaxUse=200M
-SystemMaxFileSize=50M
-EOJ
-  systemctl restart systemd-journald
-  journalctl --vacuum-size=200M || true
+  crontab "$filtered_file"
+  rm -f "$current_crontab" "$filtered_file"
+}
+
+main() {
+  install_system_dependencies
+  configure_journal_limits
+
+  mkdir -p "$(dirname "$INSTALL_DIR")"
+
+  mapfile -t release_info < <(fetch_latest_release)
+  local latest_release="${release_info[0]}"
+  local zip_url="${release_info[1]}"
+
+  log "Downloading the latest release ($latest_release)..."
+
+  rm -rf "$STAGING_DIR" "$BACKUP_DIR"
+  mkdir -p "$STAGING_DIR"
+
+  local zip_file
+  zip_file="$(mktemp /tmp/smart-irrigation-release.XXXXXX.zip)"
+  curl -fsSL -o "$zip_file" "$zip_url"
+  unzip -oq "$zip_file" -d "$STAGING_DIR"
+  rm -f "$zip_file"
+
+  if [ -f "$INSTALL_DIR/.env.local" ]; then
+    cp "$INSTALL_DIR/.env.local" "$STAGING_DIR/.env.local"
+  fi
+
+  echo "$latest_release" > "$STAGING_DIR/.version"
+
+  (
+    cd "$STAGING_DIR"
+    npm ci --omit=dev
+  )
+
+  if [ ! -f "$STAGING_DIR/build/server/index.js" ]; then
+    echo "The release package is missing build/server/index.js"
+    exit 1
+  fi
+
+  write_app_service
+  install_update_assets "$STAGING_DIR"
+
+  if [ -d "$INSTALL_DIR" ]; then
+    systemctl stop "$SERVICE_NAME" >/dev/null 2>&1 || true
+    mv "$INSTALL_DIR" "$BACKUP_DIR"
+  fi
+
+  mv "$STAGING_DIR" "$INSTALL_DIR"
+
+  if [ -d "$BACKUP_DIR/db" ]; then
+    mv "$BACKUP_DIR/db" "$INSTALL_DIR/db"
+  fi
+
+  rm -rf "$BACKUP_DIR"
+
+  systemctl daemon-reload
+  configure_update_cron
+
+  systemctl enable "$SERVICE_NAME"
   systemctl restart "$SERVICE_NAME"
-  echo "Update complete!"
-else
-  echo "No new release found. Current version: \$CURRENT_VERSION"
-fi
-EOF
-chmod +x "$UPDATE_SCRIPT_PATH"
 
-# Step 7: Schedule update automation with cron
-echo "Setting up automatic updates..."
-if ! crontab -l 2>/dev/null | grep -q "$UPDATE_SCRIPT_PATH"; then
-    (crontab -l 2>/dev/null; echo "0 * * * * $UPDATE_SCRIPT_PATH") | crontab -
-else
-    echo "Crontab entry for automatic updates already exists. Skipping..."
-fi
+  log "Installation and setup complete!"
+}
 
-# Step 8: Enable and start the service
-echo "Starting the systemd service..."
-systemctl enable "$SERVICE_NAME"
-systemctl start "$SERVICE_NAME"
-
-echo "Installation and setup complete!"
+main "$@"

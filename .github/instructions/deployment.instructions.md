@@ -25,12 +25,15 @@ applyTo: ".github/workflows/**/*.yml,.github/workflows/**/*.yaml,install.sh,pack
   - service runs as `root`
   - production install runs `npm ci --omit=dev`
   - `/opt/smart-irrigation/db` is preserved during updates
-  - hourly auto-update runs from `/usr/local/bin/update-smart-irrigation.sh`
+  - updater script path: `/usr/local/bin/update-smart-irrigation.sh`
+  - hourly auto-update is triggered by cron starting `smart-irrigation-update.service`
+  - updater status is persisted in `/opt/smart-irrigation/db/updateStatus.json`
 - On-device debugging should assume:
   - the app process itself listens on port `3000`, even if another port is exposed externally
   - service logs come from `journalctl -u smart-irrigation.service`
   - updater logs are typically in `/var/log/smart-irrigation-update.log`
   - installed version is tracked in `/opt/smart-irrigation/.version` and also exposed by `/api/version`
+- Keep the updater/service assets canonical in the repo (`scripts/update-smart-irrigation.sh` and `scripts/smart-irrigation-update.service`) and deploy them from `install.sh` rather than maintaining separate device-only copies.
 - Direct device changes are not enough on their own. If you patch installer, updater, service units, or device-only config manually, reflect that change in the repo so the next install/update reproduces it.
-- The current updater replaces the install directory in place and may emit non-fatal cleanup errors while preserving `db/`. Be careful when changing cleanup logic: preserve runtime data and `.env.local`, and keep update failure modes observable in logs.
+- Preserve the updater guarantees introduced here: lock-protected runs, persistent status updates, staged release installation, `.env.local` + `db/` preservation, and rollback if the restarted app does not pass the health check.
 - If you change packaging or startup behavior, keep the release package, version file, systemd unit, and update script consistent with each other.

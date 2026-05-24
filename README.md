@@ -10,6 +10,7 @@ Smart Irrigation is a single Node.js application for Raspberry Pi/Linux irrigati
 - Sensor polling, historical snapshots, and system logs
 - Dashboard health visibility for scheduler freshness, relay anomalies, and storage pressure
 - Raspberry Pi/Linux deployment with systemd service management and hourly update checks
+- Settings controls for checking updates and starting the updater on demand
 
 ## Runtime architecture
 
@@ -40,6 +41,7 @@ The installer:
 - creates the `smart-irrigation` systemd service
 - preserves `/opt/smart-irrigation/db`
 - installs the hourly updater at `/usr/local/bin/update-smart-irrigation.sh`
+- installs `smart-irrigation-update.service` and configures hourly cron to start it with `systemctl --no-block`
 - caps systemd journal usage to avoid filling the SD card
 
 ## Device debugging quick reference
@@ -58,15 +60,16 @@ Some devices also expose the app through port 80, but the app process itself lis
 
 ```bash
 tail -n 100 /var/log/smart-irrigation-update.log
-sudo /usr/local/bin/update-smart-irrigation.sh
+sudo systemctl start smart-irrigation-update.service
 cat /opt/smart-irrigation/.version
 ```
 
 Notes:
 
-- hourly updates are driven by cron calling `/usr/local/bin/update-smart-irrigation.sh`
+- hourly updates are driven by cron starting `smart-irrigation-update.service`
+- the updater persists status in `db/updateStatus.json`
 - updates can cause a brief outage while files are replaced and the service restarts
-- the current updater deletes and re-extracts the install directory in place; it can emit non-fatal `find` cleanup errors while preserving `db/`
+- updates are staged before swap, preserve `db/` and `.env.local`, and attempt rollback if the new app fails its post-restart health check
 
 ### Scheduler and relay diagnostics
 

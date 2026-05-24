@@ -4,6 +4,7 @@ import { remult } from 'remult';
 import type { SystemSettings } from '../shared/systemSettings';
 import { useStatusContext } from '../hooks/StatusContext';
 import { SystemSettingsDto } from '../server/dto/SystemSettingsDto';
+import { SystemUpdateCard } from '../components/SystemUpdateCard';
 
 interface SettingsProps {
 
@@ -259,6 +260,7 @@ const PWASettings = () => {
     <div className="space-y-6">
       <h2 className="text-lg font-medium text-gray-900">PWA Settings</h2>
       <div className="space-y-4">
+        <SystemUpdateCard />
 
         <div className="install-banner bg-yellow-300 text-black p-2 w-full flex justify-between items-center">
           <p className="mr-4 text-sm">

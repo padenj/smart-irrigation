@@ -1,0 +1,13 @@
+[Unit]
+Description=Smart Irrigation Update Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/smart-irrigation
+ExecStart=/usr/local/bin/update-smart-irrigation.sh
+
+[Install]
+WantedBy=multi-user.target

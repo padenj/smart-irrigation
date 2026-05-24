@@ -14,7 +14,7 @@ applyTo: "src/pages/**/*.tsx,src/components/**/*.tsx,src/server/controllers/**/*
   - persisted application logs plus systemd journal and `top` views
   - historical status snapshots with charting, filtering, date ranges, and CSV export
   - PWA installation via manifest, service worker, and install banner
-  - system maintenance endpoints for rebooting the host and restarting the app service
+  - system maintenance endpoints and UI controls for rebooting the host, restarting the app service, checking for updates, and starting an update immediately
 - New work should fit the existing irrigation domain. Reuse the current concepts of zones, programs, system status, settings, logs, snapshots, weather data, and LCD pages.
 - When adding user-facing features, keep both operational control and monitoring in mind; this app is used to both automate irrigation and inspect what the controller is doing.
 - When changing weather or scheduling behavior, preserve support for manual overrides and visibility in the dashboard/logging/history surfaces.

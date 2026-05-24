@@ -100,8 +100,12 @@ export function SystemHealthCard() {
                     throw new Error(`Health request failed with ${response.status}`);
                 }
 
-                const summary = await response.json() as SystemHealthSummary | { result?: SystemHealthSummary };
-                setHealth(normalizeSummary('result' in summary && summary.result ? summary.result : summary));
+                const summary = await response.json() as SystemHealthSummary | { result?: SystemHealthSummary; data?: SystemHealthSummary };
+                const payload =
+                    'result' in summary && summary.result ? summary.result :
+                    'data' in summary && summary.data ? summary.data :
+                    summary;
+                setHealth(normalizeSummary(payload));
             } catch (error) {
                 console.error('Failed to load system health summary:', error);
             }

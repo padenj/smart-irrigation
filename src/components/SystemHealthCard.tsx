@@ -4,6 +4,41 @@ import type { SystemHealthSummary } from '../shared/systemHealth';
 import { DateTimeUtils } from '../server/utilities/DateTimeUtils';
 import { useSettingsContext } from '../hooks/SettingsContext';
 
+const EMPTY_HEALTH_SUMMARY: SystemHealthSummary = {
+    generatedAt: '',
+    scheduler: {
+        isFresh: false,
+        ageSeconds: null,
+        lastRun: null,
+    },
+    activeZone: {
+        zoneName: null,
+        programName: null,
+        startedAt: null,
+        endsAt: null,
+        ageSeconds: null,
+        remainingSeconds: null,
+        isOverdue: false,
+    },
+    logs: {
+        warningsLast15Minutes: 0,
+        errorsLast15Minutes: 0,
+        divergencesLast24Hours: 0,
+        reconciliationsLast24Hours: 0,
+        appLogEntries: 0,
+    },
+    disk: {
+        filesystemAvailableBytes: null,
+        filesystemUsedBytes: null,
+        filesystemTotalBytes: null,
+        filesystemUsePercent: null,
+        appDbSizeBytes: null,
+        journalSizeBytes: null,
+        files: [],
+        errors: [],
+    },
+};
+
 function formatBytes(bytes: number | null): string {
     if (bytes === null) {
         return 'Unavailable';
@@ -28,6 +63,29 @@ export function SystemHealthCard() {
     const [health, setHealth] = useState<SystemHealthSummary | null>(null);
     const systemSettings = useSettingsContext();
 
+    const normalizeSummary = (summary: Partial<SystemHealthSummary> | null | undefined): SystemHealthSummary => ({
+        ...EMPTY_HEALTH_SUMMARY,
+        ...summary,
+        scheduler: {
+            ...EMPTY_HEALTH_SUMMARY.scheduler,
+            ...(summary?.scheduler ?? {}),
+        },
+        activeZone: {
+            ...EMPTY_HEALTH_SUMMARY.activeZone,
+            ...(summary?.activeZone ?? {}),
+        },
+        logs: {
+            ...EMPTY_HEALTH_SUMMARY.logs,
+            ...(summary?.logs ?? {}),
+        },
+        disk: {
+            ...EMPTY_HEALTH_SUMMARY.disk,
+            ...(summary?.disk ?? {}),
+            files: Array.isArray(summary?.disk?.files) ? summary.disk.files : [],
+            errors: Array.isArray(summary?.disk?.errors) ? summary.disk.errors : [],
+        },
+    });
+
     useEffect(() => {
         const loadHealth = async () => {
             try {
@@ -43,7 +101,7 @@ export function SystemHealthCard() {
                 }
 
                 const summary = await response.json() as SystemHealthSummary | { result?: SystemHealthSummary };
-                setHealth('result' in summary && summary.result ? summary.result : summary);
+                setHealth(normalizeSummary('result' in summary && summary.result ? summary.result : summary));
             } catch (error) {
                 console.error('Failed to load system health summary:', error);
             }
@@ -61,8 +119,9 @@ export function SystemHealthCard() {
         return "Loading...";
     }
 
-    const snapshotFile = health.disk.files.find((file) => file.path.endsWith('systemStatusSnapshot.json'));
-    const appLogFile = health.disk.files.find((file) => file.path.endsWith('systemLogs.json'));
+    const diskFiles = Array.isArray(health.disk.files) ? health.disk.files : [];
+    const snapshotFile = diskFiles.find((file) => file.path.endsWith('systemStatusSnapshot.json'));
+    const appLogFile = diskFiles.find((file) => file.path.endsWith('systemLogs.json'));
     const hasWarnings = health.logs.errorsLast15Minutes > 0 || health.logs.divergencesLast24Hours > 0 || health.activeZone.isOverdue;
 
     return (

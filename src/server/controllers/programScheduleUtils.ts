@@ -42,26 +42,19 @@ export function normalizeProgramSchedules(program: Program): Program {
         };
     }
 
-    if (program.startTime && program.daysOfWeek && program.daysOfWeek.length > 0) {
-        return {
-            ...program,
-            schedules: [
-                normalizeSchedule({
-                    id: randomUUID(),
-                    startTime: program.startTime,
-                    isEnabled: true,
-                    recurrenceType: ProgramRecurrenceType.DAYS_OF_WEEK,
-                    daysOfWeek: [...program.daysOfWeek],
-                    intervalDays: null,
-                    lastScheduledRunTime: null,
-                    nextScheduledRunTime: program.nextScheduledRunTime ?? null,
-                }),
-            ],
-        };
-    }
-
     return {
         ...program,
-        schedules: [],
+        schedules: [
+            normalizeSchedule({
+                id: randomUUID(),
+                startTime: program.startTime ?? "06:00",
+                isEnabled: true,
+                recurrenceType: ProgramRecurrenceType.DAYS_OF_WEEK,
+                daysOfWeek: [...(program.daysOfWeek ?? [])],
+                intervalDays: null,
+                lastScheduledRunTime: null,
+                nextScheduledRunTime: program.nextScheduledRunTime ?? null,
+            }),
+        ],
     };
 }

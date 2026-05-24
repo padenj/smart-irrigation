@@ -45,6 +45,35 @@ describe("normalizeProgramSchedules", () => {
         expect(normalizedProgram.daysOfWeek).toEqual([1, 3, 5]);
     });
 
+    it("creates one default legacy-derived schedule when schedules are empty", () => {
+        const program: Program = {
+            id: "program-legacy-defaults",
+            name: "Legacy Defaults",
+            schedules: [],
+            zones: [{ zoneId: "zone-1", duration: 15 }],
+            isEnabled: true,
+            nextScheduledRunTime: null,
+            lastRunTime: null,
+            skipUntil: null,
+            conditions: [],
+        };
+
+        const normalizedProgram = normalizeProgramSchedules(program);
+
+        expect(normalizedProgram.schedules).toEqual([
+            {
+                id: "generated-schedule-id",
+                recurrenceType: ProgramRecurrenceType.DAYS_OF_WEEK,
+                startTime: "06:00",
+                isEnabled: true,
+                daysOfWeek: [],
+                intervalDays: null,
+                lastScheduledRunTime: null,
+                nextScheduledRunTime: null,
+            },
+        ]);
+    });
+
     it("preserves existing schedules while applying recurrence-specific defaults", () => {
         const schedules: ProgramSchedule[] = [
             {
@@ -104,6 +133,46 @@ describe("normalizeProgramSchedules", () => {
                 isEnabled: false,
                 daysOfWeek: [],
                 intervalDays: 3,
+                lastScheduledRunTime: null,
+                nextScheduledRunTime: null,
+            },
+        ]);
+    });
+
+    it("fills missing defaults on existing schedules during normalization", () => {
+        const program: Program = {
+            id: "program-3",
+            name: "Partial Schedule Program",
+            startTime: "06:30",
+            endTime: "",
+            daysOfWeek: [1, 3, 5],
+            schedules: [
+                {
+                    id: "schedule-partial",
+                    startTime: "09:15",
+                    recurrenceType: ProgramRecurrenceType.EVERY_N_DAYS,
+                    daysOfWeek: [1, 2],
+                    lastScheduledRunTime: null,
+                } as ProgramSchedule,
+            ],
+            zones: [{ zoneId: "zone-1", duration: 15 }],
+            isEnabled: true,
+            nextScheduledRunTime: null,
+            lastRunTime: null,
+            skipUntil: null,
+            conditions: [],
+        };
+
+        const normalizedProgram = normalizeProgramSchedules(program);
+
+        expect(normalizedProgram.schedules).toEqual([
+            {
+                id: "schedule-partial",
+                recurrenceType: ProgramRecurrenceType.EVERY_N_DAYS,
+                startTime: "09:15",
+                isEnabled: true,
+                daysOfWeek: [],
+                intervalDays: 1,
                 lastScheduledRunTime: null,
                 nextScheduledRunTime: null,
             },

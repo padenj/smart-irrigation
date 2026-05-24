@@ -1,7 +1,13 @@
 import React, { useEffect } from 'react';
 import { Clock, Save, Undo, Edit2, Trash2, Plus, Waves, ArrowBigLeft } from 'lucide-react';
 import { remult } from 'remult';
-import { ConditionOperator, ConditionType, Program } from '../shared/programs';
+import {
+  ConditionOperator,
+  ConditionType,
+  Program,
+  ProgramRecurrenceType,
+  ProgramSchedule,
+} from '../shared/programs';
 import { Zone } from '../shared/zones';
 import { useStatusContext } from '../hooks/StatusContext';
 import { useSettingsContext } from '../hooks/SettingsContext';
@@ -16,11 +22,50 @@ interface DayOfWeek {
   num: number;
   name: string;
 }
+
+function formatProgramTime(value: string) {
+  if (!value) {
+    return '';
+  }
+
+  const isoTime = DateTime.fromISO(value);
+  if (isoTime.isValid) {
+    return isoTime.toFormat('hh:mm a');
+  }
+
+  const clockTime = DateTime.fromFormat(value, 'HH:mm');
+  if (clockTime.isValid) {
+    return clockTime.toFormat('hh:mm a');
+  }
+
+  return value;
+}
+
+function getProgramSchedules(program: Program): ProgramSchedule[] {
+  if (program.schedules?.length) {
+    return program.schedules;
+  }
+
+  return [{
+    id: `${program.id}-legacy-schedule`,
+    startTime: program.startTime || '',
+    isEnabled: true,
+    recurrenceType: ProgramRecurrenceType.DAYS_OF_WEEK,
+    daysOfWeek: program.daysOfWeek || [],
+    intervalDays: null,
+    lastScheduledRunTime: null,
+    nextScheduledRunTime: program.nextScheduledRunTime,
+  }];
+}
+
 export function ProgramManager({ }: ProgramManagerProps) {
   const [editingProgram, setEditingProgram] = React.useState<string>("");
   const [programDraft, setProgramDraft] = React.useState<Program | null>(null);
   const [programs, setPrograms] = React.useState<Program[]>([]);
   const [allZones, setAllZones] = React.useState<Zone[]>([]);
+  const [zoneDurationDrafts, setZoneDurationDrafts] = React.useState<Record<string, string>>({});
+  const [zoneDurationUnits, setZoneDurationUnits] = React.useState<Record<string, 'seconds' | 'minutes'>>({});
+  const [programValidationError, setProgramValidationError] = React.useState<string | null>(null);
   const programRepo = programRepository;
   const systemStatus = useStatusContext();
   const systemSettings = useSettingsContext();
@@ -35,10 +80,63 @@ export function ProgramManager({ }: ProgramManagerProps) {
     { num: 3, name: 'Wed' }, { num: 4, name: 'Thu' }, { num: 5, name: 'Fri' }, { num: 6, name: 'Sat' }
   ];
 
+  const initializeZoneEditingState = (program: Program) => {
+    setZoneDurationDrafts(
+      Object.fromEntries(program.zones.map((zone) => [zone.zoneId, String(zone.duration)]))
+    );
+    setZoneDurationUnits(
+      Object.fromEntries(program.zones.map((zone) => [zone.zoneId, 'seconds']))
+    );
+  };
+
   const handleSaveProgram = async () => {
     if (!programDraft) return;
     try {
-      const validZones = programDraft.zones.filter((z) => allZones.some((zone) => zone.id === z.zoneId));
+      setProgramValidationError(null);
+      const normalizedZones = programDraft.zones.map((zone) => {
+        const rawDuration = zoneDurationDrafts[zone.zoneId] ?? String(zone.duration);
+        const parsedDuration = rawDuration.trim() === '' ? 0 : Number(rawDuration);
+        const unit = zoneDurationUnits[zone.zoneId] ?? 'seconds';
+
+        return {
+          ...zone,
+          duration: Number.isFinite(parsedDuration)
+            ? Math.round(parsedDuration * (unit === 'minutes' ? 60 : 1))
+            : 0,
+        };
+      });
+
+      if (
+        programDraft.isEnabled &&
+        getProgramSchedules(programDraft).some(
+          (schedule) =>
+            schedule.isEnabled &&
+            schedule.recurrenceType === ProgramRecurrenceType.DAYS_OF_WEEK &&
+            schedule.daysOfWeek.length === 0
+        )
+      ) {
+        setProgramValidationError('Select at least one day for each enabled weekly schedule.');
+        return;
+      }
+
+      if (
+        programDraft.isEnabled &&
+        getProgramSchedules(programDraft).some(
+          (schedule) =>
+            schedule.isEnabled &&
+            schedule.recurrenceType === ProgramRecurrenceType.EVERY_N_DAYS &&
+            (schedule.intervalDays ?? 0) <= 1
+        )
+      ) {
+        setProgramValidationError('Repeat every N days must be greater than 1 for enabled schedules.');
+        return;
+      }
+
+      const validZones = normalizedZones.filter((z) => allZones.some((zone) => zone.id === z.zoneId));
+      if (programDraft.isEnabled && !validZones.some((zone) => zone.duration > 0)) {
+        setProgramValidationError('Enter a duration greater than 0 for at least one selected zone.');
+        return;
+      }
       console.log('Valid Zones:', validZones);
       const nextRunDate = await ProgramController.calculateNextScheuleDate(programDraft);
       const updatedProgramDraft: Program = { ...programDraft, zones: validZones, nextScheduledRunTime: nextRunDate };
@@ -49,6 +147,9 @@ export function ProgramManager({ }: ProgramManagerProps) {
       );
       setEditingProgram('');
       setProgramDraft(null);
+      setProgramValidationError(null);
+      setZoneDurationDrafts({});
+      setZoneDurationUnits({});
     } catch (e) {
       console.error(e);
     }
@@ -88,6 +189,9 @@ export function ProgramManager({ }: ProgramManagerProps) {
     const originalProgram = programs.find((p) => p.id === editingProgram);
     if (originalProgram) setProgramDraft({ ...originalProgram });
     setEditingProgram('');
+    setProgramValidationError(null);
+    setZoneDurationDrafts({});
+    setZoneDurationUnits({});
   };
 
   const handleDeleteProgram = async (programId: string) => {
@@ -140,6 +244,24 @@ export function ProgramManager({ }: ProgramManagerProps) {
                     ? [...(programDraft?.zones || []), { zoneId: zone.id, duration: 10 }]
                     : programDraft?.zones.filter((z) => z.zoneId !== zone.id) || [];
                   setProgramDraft({ ...programDraft!, zones: updatedZones });
+                  setZoneDurationDrafts((current) => {
+                    if (e.target.checked) {
+                      return { ...current, [zone.id]: current[zone.id] ?? '10' };
+                    }
+
+                    const nextDrafts = { ...current };
+                    delete nextDrafts[zone.id];
+                    return nextDrafts;
+                  });
+                  setZoneDurationUnits((current) => {
+                    if (e.target.checked) {
+                      return { ...current, [zone.id]: current[zone.id] ?? 'seconds' };
+                    }
+
+                    const nextUnits = { ...current };
+                    delete nextUnits[zone.id];
+                    return nextUnits;
+                  });
                 }}
               />
               <span className={`text-sm ${!zone.enabled ? 'text-red-600' : 'text-gray-900'}`}>
@@ -147,18 +269,35 @@ export function ProgramManager({ }: ProgramManagerProps) {
                 {!zone.enabled && <span className="ml-2 text-xs text-red-500">(Disabled)</span>}
               </span>
               {programDraft?.zones.some((z) => z.zoneId === zone.id) && (
-                <input
-                  type="number"
-                  value={programDraft?.zones.find((z) => z.zoneId === zone.id)?.duration || 0}
-                  onChange={(e) => {
-                    const updatedZones =
-                      programDraft?.zones.map((z) =>
-                        z.zoneId === zone.id ? { ...z, duration: parseInt(e.target.value) || 0 } : z
-                      ) || [];
-                    setProgramDraft({ ...programDraft!, zones: updatedZones });
-                  }}
-                  className="w-16 border rounded px-2 py-1 text-sm"
-                />
+                <>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    aria-label={`Duration for ${zone.name}`}
+                    value={zoneDurationDrafts[zone.id] ?? String(programDraft?.zones.find((z) => z.zoneId === zone.id)?.duration ?? '')}
+                    onChange={(e) => {
+                      setZoneDurationDrafts((current) => ({
+                        ...current,
+                        [zone.id]: e.target.value,
+                      }));
+                    }}
+                    className="w-16 border rounded px-2 py-1 text-sm"
+                  />
+                  <select
+                    aria-label={`Duration unit for ${zone.name}`}
+                    value={zoneDurationUnits[zone.id] ?? 'seconds'}
+                    onChange={(e) => {
+                      setZoneDurationUnits((current) => ({
+                        ...current,
+                        [zone.id]: e.target.value as 'seconds' | 'minutes',
+                      }));
+                    }}
+                    className="border rounded px-2 py-1 text-sm"
+                  >
+                    <option value="seconds">Seconds</option>
+                    <option value="minutes">Minutes</option>
+                  </select>
+                </>
               )}
             </div>
           ))}
@@ -188,71 +327,199 @@ export function ProgramManager({ }: ProgramManagerProps) {
 
   const renderProgramSchedule = (program: Program) => (
     <div>
-      <h4 className="font-medium text-gray-700">Schedule</h4>
+      <h4 className="font-medium text-gray-700">
+        {program.schedules?.length ? 'Schedules' : 'Schedule'}
+      </h4>
       {editingProgram === program.id ? (
         <div className="flex-1 space-y-3">
-          <div className="flex space-x-4">
-            <div>
-              <label className="block text-sm text-gray-600">Start Time</label>
-              <input
-                type="time"
-                value={programDraft?.startTime || ''}
-                onChange={(e) => setProgramDraft({ ...programDraft!, startTime: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm text-gray-600">Days</label>
-            <div className="mt-1 flex flex-wrap gap-2">
-              {daysOfWeek.map((day) => (
-                <button
-                  key={day.num}
-                  onClick={() => {
-                    const daysOfWeek = programDraft?.daysOfWeek.includes(day.num)
-                      ? programDraft.daysOfWeek.filter((d) => d !== day.num)
-                      : [...(programDraft?.daysOfWeek || []), day.num];
-                    setProgramDraft({ ...programDraft!, daysOfWeek });
+          {getProgramSchedules(programDraft || program).map((schedule) => (
+            <div key={schedule.id} className="space-y-2 rounded-md border p-3">
+              <div className="flex items-center justify-between gap-3">
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={schedule.isEnabled}
+                    onChange={(e) => {
+                      const schedules = getProgramSchedules(programDraft || program).map((currentSchedule) =>
+                        currentSchedule.id === schedule.id
+                          ? { ...currentSchedule, isEnabled: e.target.checked }
+                          : currentSchedule
+                      );
+                      setProgramDraft({ ...(programDraft || program), schedules });
+                    }}
+                  />
+                  Enabled
+                </label>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600">Schedule time</label>
+                <input
+                  type="time"
+                  aria-label="Schedule time"
+                  value={schedule.startTime}
+                  onChange={(e) => {
+                    const schedules = getProgramSchedules(programDraft || program).map((currentSchedule) =>
+                      currentSchedule.id === schedule.id
+                        ? { ...currentSchedule, startTime: e.target.value }
+                        : currentSchedule
+                    );
+                    setProgramDraft({ ...(programDraft || program), schedules });
                   }}
-                  className={`px-2 py-1 text-sm rounded-md ${
-                    programDraft?.daysOfWeek.includes(day.num)
-                      ? 'bg-blue-100 text-blue-800'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600">Recurrence type</label>
+                <select
+                  aria-label="Recurrence type"
+                  value={schedule.recurrenceType}
+                  onChange={(e) => {
+                    const recurrenceType = e.target.value as ProgramSchedule['recurrenceType'];
+                    const schedules = getProgramSchedules(programDraft || program).map((currentSchedule) => {
+                      if (currentSchedule.id !== schedule.id) {
+                        return currentSchedule;
+                      }
+
+                      return {
+                        ...currentSchedule,
+                        recurrenceType,
+                        daysOfWeek: recurrenceType === ProgramRecurrenceType.DAYS_OF_WEEK
+                          ? currentSchedule.daysOfWeek
+                          : [],
+                        intervalDays: recurrenceType === ProgramRecurrenceType.EVERY_N_DAYS
+                          ? currentSchedule.intervalDays ?? 2
+                          : null,
+                      };
+                    });
+                    setProgramDraft({ ...(programDraft || program), schedules });
+                  }}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                 >
-                  {day.name}
-                </button>
-              ))}
+                  <option value={ProgramRecurrenceType.DAYS_OF_WEEK}>Days of week</option>
+                  <option value={ProgramRecurrenceType.EVERY_N_DAYS}>Every N days</option>
+                </select>
+              </div>
+              <div>
+                {schedule.recurrenceType === ProgramRecurrenceType.EVERY_N_DAYS ? (
+                  <>
+                    <label className="block text-sm text-gray-600">Repeat every N days</label>
+                    <input
+                      type="number"
+                      min={2}
+                      aria-label="Repeat every N days"
+                      value={schedule.intervalDays ?? 2}
+                      onChange={(e) => {
+                        const schedules = getProgramSchedules(programDraft || program).map((currentSchedule) =>
+                          currentSchedule.id === schedule.id
+                            ? {
+                                ...currentSchedule,
+                                intervalDays: Number(e.target.value) || 2,
+                              }
+                            : currentSchedule
+                        );
+                        setProgramDraft({ ...(programDraft || program), schedules });
+                      }}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                    />
+                  </>
+                ) : (
+                  <>
+                <label className="block text-sm text-gray-600">Days</label>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {daysOfWeek.map((day) => (
+                    <button
+                      key={day.num}
+                      type="button"
+                      onClick={() => {
+                        const schedules = getProgramSchedules(programDraft || program).map((currentSchedule) => {
+                          if (currentSchedule.id !== schedule.id) {
+                            return currentSchedule;
+                          }
+
+                          const scheduleDays = currentSchedule.daysOfWeek.includes(day.num)
+                            ? currentSchedule.daysOfWeek.filter((d) => d !== day.num)
+                            : [...currentSchedule.daysOfWeek, day.num];
+
+                          return { ...currentSchedule, daysOfWeek: scheduleDays };
+                        });
+                        setProgramDraft({ ...(programDraft || program), schedules });
+                      }}
+                      className={`px-2 py-1 text-sm rounded-md ${
+                        schedule.daysOfWeek.includes(day.num)
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {day.name}
+                    </button>
+                  ))}
+                </div>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          ))}
+          <button
+            type="button"
+            aria-label="Add schedule"
+            onClick={() => {
+              const schedules = [
+                ...getProgramSchedules(programDraft || program),
+                {
+                  id: `schedule-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+                  startTime: '06:00',
+                  isEnabled: true,
+                  recurrenceType: ProgramRecurrenceType.DAYS_OF_WEEK,
+                  daysOfWeek: [],
+                  intervalDays: null,
+                  lastScheduledRunTime: null,
+                  nextScheduledRunTime: null,
+                },
+              ];
+              setProgramDraft({ ...(programDraft || program), schedules });
+            }}
+            className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Add schedule
+          </button>
         </div>
       ) : (
-        <div className="flex items-center space-x-4">
-          <Clock className="h-5 w-5 text-gray-400" />
-          <div>
-            <p className="text-sm font-medium text-gray-900">{DateTime.fromISO(program.startTime).toFormat('hh:mm a')}</p>
-            <p className="text-sm text-gray-500">
-              {program.daysOfWeek
-                .sort((a, b) => a - b)
-                .map((day) => daysOfWeek.find((d) => d.num === day)?.name)
-                .join(', ')}
-            </p>
-            {program.skipUntil && (
-              <><p className="text-xs text-orange-600 mt-1">
+        <div className="space-y-3">
+          {getProgramSchedules(program).map((schedule) => (
+            <div key={schedule.id} className="flex items-start space-x-4">
+              <Clock className="mt-0.5 h-5 w-5 text-gray-400" />
+              <div>
+                <p className="text-sm font-medium text-gray-900">
+                  {formatProgramTime(schedule.startTime)}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {schedule.intervalDays
+                    ? `Every ${schedule.intervalDays} days`
+                    : (schedule.daysOfWeek || [])
+                        .sort((a, b) => a - b)
+                        .map((day) => daysOfWeek.find((d) => d.num === day)?.name)
+                        .join(', ')}
+                  {schedule.isEnabled === false && <span className="ml-2 text-xs text-red-500">(Disabled)</span>}
+                </p>
+              </div>
+            </div>
+          ))}
+          {program.skipUntil && (
+            <>
+              <p className="text-xs text-orange-600 mt-1">
                 Skipped until {DateTime.fromISO(program.skipUntil).toLocaleString(DateTime.DATE_MED)}
               </p>
               <button
                 type="button"
-                className="ml-2 px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-xs"
+                className="px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-xs"
                 onClick={async () => {
                   setProgramDraft({ ...programDraft!, skipUntil: null });
                 }}
               >
                 Clear
               </button>
-              </>
-            )}
-          </div>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -352,7 +619,7 @@ export function ProgramManager({ }: ProgramManagerProps) {
       <div className="grid gap-6">
         {programs.map((program: Program) => (
           <div key={program.id} className="bg-white rounded-lg shadow-sm border p-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               {editingProgram === program.id ? (
                 <input
                   type="text"
@@ -382,7 +649,7 @@ export function ProgramManager({ }: ProgramManagerProps) {
                   </span>
                 )}
               </div>
-              <div className="flex items-center space-x-4">
+              <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="button"
                   className={`px-2 py-1 rounded text-xs ${
@@ -421,6 +688,7 @@ export function ProgramManager({ }: ProgramManagerProps) {
                       : 'bg-green-600 text-white hover:bg-green-700'
                     }`}
                     disabled={editingProgram === program.id || !program.isEnabled}
+                    aria-label={`Run program ${program.name}`}
                     >
                     Run
                     </button>
@@ -433,20 +701,21 @@ export function ProgramManager({ }: ProgramManagerProps) {
                           setProgramDraft({ ...programDraft, isEnabled: !programDraft.isEnabled });
                         }
                       }}
-                      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 transition-colors ${
-                        programDraft?.isEnabled ? 'bg-blue-600' : 'bg-gray-200'
-                      }`}
+                     aria-label={`Toggle program ${program.name}`}
+                     className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 transition-colors ${
+                       programDraft?.isEnabled ? 'bg-blue-600' : 'bg-gray-200'
+                     }`}
                     >
-                      <span
-                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ${
-                          programDraft?.isEnabled ? 'translate-x-5' : 'translate-x-0'
-                        }`}
-                      />
+                     <span
+                       className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ${
+                         programDraft?.isEnabled ? 'translate-x-5' : 'translate-x-0'
+                       }`}
+                     />
                     </button>
-                    <button onClick={handleCancelEdit} className="p-1 text-gray-400 hover:text-gray-600">
+                    <button aria-label={`Cancel editing ${program.name}`} onClick={handleCancelEdit} className="p-1 text-gray-400 hover:text-gray-600">
                       <Undo className="h-4 w-4" />
                     </button>
-                    <button onClick={handleSaveProgram} className="p-1 text-blue-400 hover:text-blue-600">
+                    <button aria-label={`Save program ${program.name}`} onClick={handleSaveProgram} className="p-1 text-blue-400 hover:text-blue-600">
                       <Save className="h-4 w-4" />
                     </button>
                   </>
@@ -455,8 +724,11 @@ export function ProgramManager({ }: ProgramManagerProps) {
                     <button
                       onClick={() => {
                         setEditingProgram(program.id);
-                        setProgramDraft({ ...program });
+                        setProgramDraft({ ...program, schedules: getProgramSchedules(program) });
+                        setProgramValidationError(null);
+                        initializeZoneEditingState(program);
                       }}
+                      aria-label={`Edit program ${program.name}`}
                       className="p-1 text-green-400 hover:text-green-600"
                     >
                       <Edit2 className="h-4 w-4" />
@@ -464,6 +736,7 @@ export function ProgramManager({ }: ProgramManagerProps) {
                   </>
                 )}
                 <button
+                 aria-label={`Delete program ${program.name}`}
                   onClick={() => {
                   if (window.confirm('Are you sure you want to delete this program?')) {
                     handleDeleteProgram(program.id);
@@ -475,11 +748,14 @@ export function ProgramManager({ }: ProgramManagerProps) {
                 </button>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               {renderProgramZones(program)}
               {renderProgramSchedule(program)}
               {renderProgramConditions(program)}
             </div>
+            {editingProgram === program.id && programValidationError && (
+              <p className="mt-4 text-sm text-red-600">{programValidationError}</p>
+            )}
           </div>
         ))}
       </div>

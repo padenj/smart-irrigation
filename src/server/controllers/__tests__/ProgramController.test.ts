@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ProgramController } from '../ProgramController';
 import { Program, ProgramRecurrenceType } from '../../../shared/programs';
-import { programRepository } from '../../data/repositories';
+import { programRepository, systemStatusRepository } from '../../data/repositories';
+import { LogController } from '../LogController';
+import { ProgramDto } from '../../dto/ProgramDto';
 
 vi.mock('../ZoneController', () => ({
     ZoneController: {
@@ -331,7 +333,7 @@ describe('ProgramController.updateProgramSchedule', () => {
             lastRunTime: null,
             skipUntil: null,
             conditions: [],
-        } as Program);
+        } as ProgramDto);
 
         await ProgramController.updateProgramSchedule('program-with-schedules');
 
@@ -369,6 +371,160 @@ describe('ProgramController.updateProgramSchedule', () => {
                 },
             ],
             nextScheduledRunTime: '2026-01-06T07:45:00.000Z',
+        });
+    });
+
+    describe('ProgramController.runProgram', () => {
+        beforeEach(() => {
+            vi.clearAllMocks();
+            vi.useFakeTimers();
+            vi.setSystemTime(new Date('2026-01-05T10:00:00.000Z'));
+        });
+
+        afterEach(() => {
+            vi.useRealTimers();
+        });
+
+        it('updates only the triggering schedule entry after a scheduled run completes', async () => {
+            const program = {
+                id: 'program-with-intervals',
+                name: 'Program with intervals',
+                zones: [{ zoneId: 'zone-1', duration: 10 }],
+                daysOfWeek: [],
+                startTime: '',
+                schedules: [
+                    {
+                        id: 'schedule-triggered',
+                        startTime: '08:00',
+                        isEnabled: true,
+                        recurrenceType: ProgramRecurrenceType.EVERY_N_DAYS,
+                        daysOfWeek: [],
+                        intervalDays: 3,
+                        lastScheduledRunTime: '2026-01-02T08:00:00.000Z',
+                        nextScheduledRunTime: '2026-01-05T08:00:00.000Z',
+                    },
+                    {
+                        id: 'schedule-untouched',
+                        startTime: '07:00',
+                        isEnabled: true,
+                        recurrenceType: ProgramRecurrenceType.EVERY_N_DAYS,
+                        daysOfWeek: [],
+                        intervalDays: 5,
+                        lastScheduledRunTime: '2026-01-01T07:00:00.000Z',
+                        nextScheduledRunTime: '2026-01-06T07:00:00.000Z',
+                    },
+                ],
+                isEnabled: true,
+                nextScheduledRunTime: '2026-01-05T08:00:00.000Z',
+                lastRunTime: null,
+                skipUntil: null,
+                conditions: [],
+            } as ProgramDto;
+
+            vi.mocked(programRepository.findId).mockResolvedValue(program);
+            vi.mocked(systemStatusRepository.findFirst)
+                .mockResolvedValueOnce({
+                    id: 0,
+                    activeProgram: null,
+                    activeZone: null,
+                    activeZoneStart: null,
+                    activeZoneEnd: null,
+                    weatherData: {} as any,
+                    sensorData: {},
+                })
+                .mockResolvedValueOnce({
+                    id: 0,
+                    activeProgram: { id: program.id },
+                    activeZone: null,
+                    activeZoneStart: null,
+                    activeZoneEnd: null,
+                    weatherData: {} as any,
+                    sensorData: {},
+                } as any);
+
+            await ProgramController.runProgram(program.id, false, 'schedule-triggered');
+
+            expect(programRepository.update).toHaveBeenCalledWith(program.id, {
+                schedules: [
+                    {
+                        id: 'schedule-triggered',
+                        startTime: '08:00',
+                        isEnabled: true,
+                        recurrenceType: ProgramRecurrenceType.EVERY_N_DAYS,
+                        daysOfWeek: [],
+                        intervalDays: 3,
+                        lastScheduledRunTime: '2026-01-05T10:00:00.000Z',
+                        nextScheduledRunTime: '2026-01-08T08:00:00.000Z',
+                    },
+                    {
+                        id: 'schedule-untouched',
+                        startTime: '07:00',
+                        isEnabled: true,
+                        recurrenceType: ProgramRecurrenceType.EVERY_N_DAYS,
+                        daysOfWeek: [],
+                        intervalDays: 5,
+                        lastScheduledRunTime: '2026-01-01T07:00:00.000Z',
+                        nextScheduledRunTime: '2026-01-06T07:00:00.000Z',
+                    },
+                ],
+                nextScheduledRunTime: '2026-01-06T07:00:00.000Z',
+                lastRunTime: '2026-01-05T10:00:00.000Z',
+            });
+        });
+
+        it('logs when a scheduled run completes without a matching triggering schedule entry', async () => {
+            const program = {
+                id: 'program-with-missing-schedule',
+                name: 'Program missing schedule',
+                zones: [{ zoneId: 'zone-1', duration: 10 }],
+                daysOfWeek: [],
+                startTime: '',
+                schedules: [
+                    {
+                        id: 'schedule-present',
+                        startTime: '08:00',
+                        isEnabled: true,
+                        recurrenceType: ProgramRecurrenceType.EVERY_N_DAYS,
+                        daysOfWeek: [],
+                        intervalDays: 3,
+                        lastScheduledRunTime: '2026-01-02T08:00:00.000Z',
+                        nextScheduledRunTime: '2026-01-05T08:00:00.000Z',
+                    },
+                ],
+                isEnabled: true,
+                nextScheduledRunTime: '2026-01-05T08:00:00.000Z',
+                lastRunTime: null,
+                skipUntil: null,
+                conditions: [],
+            } as ProgramDto;
+
+            vi.mocked(programRepository.findId).mockResolvedValue(program);
+            vi.mocked(systemStatusRepository.findFirst)
+                .mockResolvedValueOnce({
+                    id: 0,
+                    activeProgram: null,
+                    activeZone: null,
+                    activeZoneStart: null,
+                    activeZoneEnd: null,
+                    weatherData: {} as any,
+                    sensorData: {},
+                })
+                .mockResolvedValueOnce({
+                    id: 0,
+                    activeProgram: { id: program.id },
+                    activeZone: null,
+                    activeZoneStart: null,
+                    activeZoneEnd: null,
+                    weatherData: {} as any,
+                    sensorData: {},
+                } as any);
+
+            await ProgramController.runProgram(program.id, false, 'missing-schedule-id');
+
+            expect(LogController.writeLog).toHaveBeenCalledWith(
+                'Scheduled run for program Program missing schedule completed without matching schedule entry missing-schedule-id',
+                'WARNING'
+            );
         });
     });
 });

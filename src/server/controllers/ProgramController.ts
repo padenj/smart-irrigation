@@ -1,11 +1,15 @@
 import { BackendMethod } from 'remult';
-import { ConditionOperator, ConditionType, Program } from '../../shared/programs';
+import {
+    ConditionOperator,
+    ConditionType,
+    Program,
+} from '../../shared/programs';
 import { DateTimeUtils } from '../utilities/DateTimeUtils';
 import { ZoneController } from './ZoneController';
 import { LogController } from './LogController';
 import { DisplayController } from './DisplayController';
 import { programRepository, settingsRepository, systemStatusRepository } from '../data/repositories';
-import { calculateProgramSchedules } from './programScheduleUtils';
+import { calculateProgramSchedules, normalizeProgramSchedules } from './programScheduleUtils';
 
 export class ProgramController {
 
@@ -68,7 +72,7 @@ export class ProgramController {
     * @param programId - The ID of the program to run.
     */
     @BackendMethod({ allowed: true, apiPrefix: 'programs' })
-    static async runProgram(programId: string, isManual?: boolean) {
+    static async runProgram(programId: string, isManual?: boolean, scheduleEntryId?: string) {
         const programRepo = programRepository;
         const systemStatus = await systemStatusRepository.findFirst();
         const settings = await settingsRepository.findFirst();
@@ -151,11 +155,12 @@ export class ProgramController {
             await systemStatusRepository.update(systemStatus.id, { activeProgram: program });
         }
 
-        // Update program's lastRunTime
+        const runCompletedAt = DateTimeUtils.toISODateTime(new Date(), timezone);
         await programRepo.update(program.id, {
-            lastRunTime: DateTimeUtils.toISODateTime(new Date(), timezone)
+            lastRunTime: runCompletedAt
         });
 
+        let completedAllZones = true;
         for (const zone of program.zones) {
             // Check if the program is still the active program
             const currentSystemStatus = await systemStatusRepository.findFirst();
@@ -174,9 +179,46 @@ export class ProgramController {
                         replacementProgramName: currentSystemStatus?.activeProgram?.name ?? null,
                     }
                 );
+                completedAllZones = false;
                 break;
             }
             await ZoneController.runZoneBlocking(zone.zoneId, zone.duration);
+        }
+
+        if (!isManual && completedAllZones && scheduleEntryId) {
+            const normalizedProgram = normalizeProgramSchedules(program);
+            const hasMatchingSchedule = normalizedProgram.schedules.some(
+                (schedule) => schedule.id === scheduleEntryId
+            );
+
+            if (!hasMatchingSchedule) {
+                LogController.writeLog(
+                    `Scheduled run for program ${program.name} completed without matching schedule entry ${scheduleEntryId}`,
+                    "WARNING"
+                );
+            }
+
+            const schedules = normalizedProgram.schedules.map((schedule) =>
+                schedule.id === scheduleEntryId
+                    ? { ...schedule, lastScheduledRunTime: runCompletedAt }
+                    : schedule
+            );
+
+            const scheduledProgram = calculateProgramSchedules(
+                {
+                    ...normalizedProgram,
+                    lastRunTime: runCompletedAt,
+                    schedules,
+                },
+                timezone,
+                true
+            );
+
+            await programRepo.update(program.id, {
+                schedules: scheduledProgram.schedules,
+                nextScheduledRunTime: scheduledProgram.nextScheduledRunTime,
+                lastRunTime: runCompletedAt,
+            });
         }
 
         LogController.writeEvent(
@@ -230,21 +272,37 @@ export class ProgramController {
         }
 
         const programToRun = programs.find((program) => {
-            if (!program.isEnabled) {
-                //console.log(`Skipping disabled program ${program.name}`);
+            if (!program.isEnabled || !program.nextScheduledRunTime) {
                 return false;
             }
-            if (program.nextScheduledRunTime) {
-                const nextRunTime = DateTimeUtils.fromISODateTime(program.nextScheduledRunTime, timezone);
-                return nextRunTime ? nextRunTime <= now : false;
-            }
-            return false;
+
+            const nextRunTime = DateTimeUtils.fromISODateTime(program.nextScheduledRunTime, timezone);
+            return nextRunTime ? nextRunTime <= now : false;
         });
 
         if (programToRun) {
+            const normalizedProgram = normalizeProgramSchedules(programToRun);
+            const triggeringSchedule = normalizedProgram.schedules
+                .filter((schedule) => {
+                    if (!schedule.isEnabled || !schedule.nextScheduledRunTime) {
+                        return false;
+                    }
+
+                    const nextRunTime = DateTimeUtils.fromISODateTime(
+                        schedule.nextScheduledRunTime,
+                        timezone
+                    );
+
+                    return nextRunTime ? nextRunTime <= now : false;
+                })
+                .sort((left, right) =>
+                    Date.parse(left.nextScheduledRunTime ?? "") -
+                    Date.parse(right.nextScheduledRunTime ?? "")
+                )[0];
+
             console.log(`Running program ${programToRun.name}`);
             // Trigger the program run in the background
-            ProgramController.runProgram(programToRun.id, false);
+            ProgramController.runProgram(programToRun.id, false, triggeringSchedule?.id);
         }
     }
 

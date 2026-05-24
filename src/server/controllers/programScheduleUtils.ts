@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { DateTime } from "luxon";
 import {
     Program,
@@ -6,6 +5,13 @@ import {
     ProgramSchedule,
 } from "../../shared/programs";
 import { DateTimeUtils } from "../utilities/DateTimeUtils";
+
+function generateScheduleId(): string {
+    return (
+        globalThis.crypto?.randomUUID?.() ??
+        `schedule-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+    );
+}
 
 function normalizeSchedule(
     schedule: Partial<ProgramSchedule> & Pick<ProgramSchedule, "id">
@@ -27,7 +33,7 @@ function normalizeSchedule(
                 : [],
         intervalDays:
             recurrenceType === ProgramRecurrenceType.EVERY_N_DAYS
-                ? schedule.intervalDays ?? 1
+                ? schedule.intervalDays ?? 2
                 : null,
         lastScheduledRunTime: schedule.lastScheduledRunTime ?? null,
         nextScheduledRunTime: schedule.nextScheduledRunTime ?? null,
@@ -48,7 +54,7 @@ export function normalizeProgramSchedules(program: Program): Program {
         ...program,
         schedules: [
             normalizeSchedule({
-                id: randomUUID(),
+                id: generateScheduleId(),
                 startTime: program.startTime ?? "06:00",
                 isEnabled: true,
                 recurrenceType: ProgramRecurrenceType.DAYS_OF_WEEK,

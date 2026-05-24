@@ -6,10 +6,6 @@ import {
 } from "../../../shared/programs";
 import { normalizeProgramSchedules } from "../programScheduleUtils";
 
-vi.mock("node:crypto", () => ({
-    randomUUID: vi.fn(() => "generated-schedule-id"),
-}));
-
 describe("normalizeProgramSchedules", () => {
     it("migrates legacy startTime and daysOfWeek into one enabled daysOfWeek schedule", () => {
         const program: Program = {
@@ -30,8 +26,8 @@ describe("normalizeProgramSchedules", () => {
         const normalizedProgram = normalizeProgramSchedules(program);
 
         expect(normalizedProgram.schedules).toEqual([
-            {
-                id: "generated-schedule-id",
+            expect.objectContaining({
+                id: expect.any(String),
                 recurrenceType: ProgramRecurrenceType.DAYS_OF_WEEK,
                 startTime: "06:30",
                 isEnabled: true,
@@ -39,7 +35,7 @@ describe("normalizeProgramSchedules", () => {
                 intervalDays: null,
                 lastScheduledRunTime: null,
                 nextScheduledRunTime: "2026-05-24T06:30:00.000Z",
-            },
+            }),
         ]);
         expect(normalizedProgram.startTime).toBe("06:30");
         expect(normalizedProgram.daysOfWeek).toEqual([1, 3, 5]);
@@ -61,8 +57,8 @@ describe("normalizeProgramSchedules", () => {
         const normalizedProgram = normalizeProgramSchedules(program);
 
         expect(normalizedProgram.schedules).toEqual([
-            {
-                id: "generated-schedule-id",
+            expect.objectContaining({
+                id: expect.any(String),
                 recurrenceType: ProgramRecurrenceType.DAYS_OF_WEEK,
                 startTime: "06:00",
                 isEnabled: true,
@@ -70,7 +66,7 @@ describe("normalizeProgramSchedules", () => {
                 intervalDays: null,
                 lastScheduledRunTime: null,
                 nextScheduledRunTime: null,
-            },
+            }),
         ]);
     });
 
@@ -172,7 +168,7 @@ describe("normalizeProgramSchedules", () => {
                 startTime: "09:15",
                 isEnabled: true,
                 daysOfWeek: [],
-                intervalDays: 1,
+                intervalDays: 2,
                 lastScheduledRunTime: null,
                 nextScheduledRunTime: null,
             },

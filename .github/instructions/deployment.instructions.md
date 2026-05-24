@@ -26,4 +26,11 @@ applyTo: ".github/workflows/**/*.yml,.github/workflows/**/*.yaml,install.sh,pack
   - production install runs `npm ci --omit=dev`
   - `/opt/smart-irrigation/db` is preserved during updates
   - hourly auto-update runs from `/usr/local/bin/update-smart-irrigation.sh`
+- On-device debugging should assume:
+  - the app process itself listens on port `3000`, even if another port is exposed externally
+  - service logs come from `journalctl -u smart-irrigation.service`
+  - updater logs are typically in `/var/log/smart-irrigation-update.log`
+  - installed version is tracked in `/opt/smart-irrigation/.version` and also exposed by `/api/version`
+- Direct device changes are not enough on their own. If you patch installer, updater, service units, or device-only config manually, reflect that change in the repo so the next install/update reproduces it.
+- The current updater replaces the install directory in place and may emit non-fatal cleanup errors while preserving `db/`. Be careful when changing cleanup logic: preserve runtime data and `.env.local`, and keep update failure modes observable in logs.
 - If you change packaging or startup behavior, keep the release package, version file, systemd unit, and update script consistent with each other.

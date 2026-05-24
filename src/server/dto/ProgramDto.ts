@@ -1,5 +1,10 @@
 import { Entity, Fields } from "remult";
-import { Program, ProgramCondition } from "../../shared/programs";
+import {
+    Program,
+    ProgramCondition,
+    ProgramSchedule,
+    ProgramZoneDuration,
+} from "../../shared/programs";
 
 
 @Entity("programs", {
@@ -13,19 +18,22 @@ export class ProgramDto implements Program {
     name!: string;
 
     @Fields.string()
-    startTime!: string; // Format: HH:mm
+    startTime = ""; // Format: HH:mm
 
     // Format: HH:mm
     @Fields.string()
-    endTime!: string; // Format: HH:mm
+    endTime = ""; // Format: HH:mm
 
     // Format: HH:mm
     @Fields.json()
-    daysOfWeek!: number[]; // Sunday = 0
+    daysOfWeek: number[] = []; // Sunday = 0
+
+    @Fields.json()
+    schedules: ProgramSchedule[] = [];
 
     // Sunday = 0
     @Fields.object()
-    zones!: { zoneId: string; duration: number; }[]; // Example: [{ zoneId: "zone1", duration: 30 }]
+    zones!: ProgramZoneDuration[]; // Example: [{ zoneId: "zone1", duration: 30 }]
 
     // Example: [{ zoneId: "zone1", duration: 30 }]
     @Fields.boolean()

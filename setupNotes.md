@@ -13,7 +13,7 @@ by modifying the file: /etc/sudoers to have the defaults section end with:
 "Defaults !secure_path"
 
 # install node
-pi@w3demopi:~ $ curl -sL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+pi@w3demopi:~ $ curl -sL https://deb.nodesource.com/setup_24.x | sudo -E bash -
 Now install it by running:
 
 pi@w3demopi:~ $ sudo apt-get install -y nodejs

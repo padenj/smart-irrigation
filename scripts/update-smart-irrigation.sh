@@ -53,6 +53,26 @@ ensure_paths() {
   export PATH
 }
 
+ensure_node_24() {
+  local current_major=""
+  if command -v node >/dev/null 2>&1; then
+    current_major="$(node -p 'process.versions.node.split(".")[0]')"
+  fi
+  if [ "$current_major" != "24" ]; then
+    log "Installing or upgrading Node.js 24 for update run"
+    apt update
+    apt install -y ca-certificates curl gnupg
+    curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
+    apt install -y nodejs
+  fi
+  local installed_major
+  installed_major="$(node -p 'process.versions.node.split(".")[0]')"
+  if [ "$installed_major" != "24" ]; then
+    log "Node.js 24 installation failed during update"
+    return 1
+  fi
+}
+
 current_version() {
   if [ -f "$INSTALL_DIR/.version" ]; then
     tr -d '\n' < "$INSTALL_DIR/.version"
@@ -351,6 +371,8 @@ main() {
 
   install_canonical_assets "$STAGING_DIR"
 
+  log "Ensuring Node.js 24 is available"
+  ensure_node_24
   log "Running npm ci in staged install"
   (
     cd "$STAGING_DIR"

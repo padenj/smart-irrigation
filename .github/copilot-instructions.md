@@ -5,6 +5,10 @@
 - The application combines a React/Vite frontend with an Express + Remult backend in one Node.js app.
 - Core capabilities include irrigation zone control, scheduled programs, sensor reads, weather-driven decisions, LCD display updates, system logs, history snapshots, and a lightweight PWA install flow.
 
+## Runtime baseline
+- Treat Node 24 as the supported baseline for local dependency resolution, GitHub Actions, fresh installs, and staged device updates.
+- If package or lockfile changes affect dependency resolution, validate them with Node 24 / npm 11 semantics.
+
 ## Architecture map
 - `src/pages`, `src/components`, `src/hooks`: browser UI for dashboard, zones, programs, settings, history, logs, and LCD display views.
 - `src/server`: backend entrypoint, controllers, weather integrations, cron scheduling, and hardware adapters.

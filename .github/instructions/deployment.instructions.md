@@ -12,7 +12,7 @@ applyTo: ".github/workflows/**/*.yml,.github/workflows/**/*.yaml,install.sh,pack
   - the release workflow copies `version.txt` into that directory
 - The GitHub Actions release flow currently:
   1. runs on pushes to `main`
-  2. uses Node 20
+  2. uses Node 24
   3. runs `npm ci`
   4. runs `npm run build`
   5. increments a semantic version tag

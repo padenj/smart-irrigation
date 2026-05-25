@@ -22,3 +22,7 @@
 - Check both `src/shared/*` and `src/server/dto/*` before refactoring persistence-related models; this codebase currently mixes shared contracts with DTO-backed repositories.
 - Preserve the current deployment shape: production serves the SPA from `build/dist` and runs the server from `build/server/index.js`.
 - When making a git commit for this repository, push it afterward unless explicitly told not to.
+
+## GitHub authentication
+- This environment may authenticate GitHub operations through the VS Code askpass helper exposed in `GIT_ASKPASS`; do not override or clear `GIT_ASKPASS` when running `git push`, creating PRs, or merging.
+- If GitHub write operations appear to fail, inspect the current auth path first with `git credential fill` rather than forcing `GIT_TERMINAL_PROMPT=0`, `GIT_ASKPASS=/bin/true`, or other non-interactive overrides that can disable the working credential flow.

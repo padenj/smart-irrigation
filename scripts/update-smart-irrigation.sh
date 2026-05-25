@@ -53,6 +53,24 @@ ensure_paths() {
   export PATH
 }
 
+configure_nodesource_node_24_repo() {
+  local keyring_path="/etc/apt/keyrings/nodesource.gpg"
+  local source_list_path="/etc/apt/sources.list.d/nodesource.list"
+  local architecture
+
+  architecture="$(dpkg --print-architecture)"
+
+  apt update
+  apt install -y ca-certificates curl gnupg
+  install -m 0755 -d /etc/apt/keyrings /etc/apt/sources.list.d
+  curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor --yes -o "$keyring_path"
+  chmod 0644 "$keyring_path"
+  printf 'deb [arch=%s signed-by=%s] https://deb.nodesource.com/node_24.x nodistro main\n' \
+    "$architecture" "$keyring_path" > "$source_list_path"
+  chmod 0644 "$source_list_path"
+  apt update
+}
+
 ensure_node_24() {
   local current_major=""
   if command -v node >/dev/null 2>&1; then
@@ -60,10 +78,9 @@ ensure_node_24() {
   fi
   if [ "$current_major" != "24" ]; then
     log "Installing or upgrading Node.js 24 for update run"
-    apt update
-    apt install -y ca-certificates curl gnupg
-    curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
+    configure_nodesource_node_24_repo
     apt install -y nodejs
+    hash -r
   fi
   local installed_major
   installed_major="$(node -p 'process.versions.node.split(".")[0]')"

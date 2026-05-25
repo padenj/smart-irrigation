@@ -26,14 +26,33 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 install_system_dependencies() {
-  if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
-    log "Node.js and npm not found. Installing..."
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  apt update
+  apt install -y jq unzip curl wget util-linux ca-certificates gnupg
+  ensure_node_24
+}
+
+ensure_node_24() {
+  local current_major=""
+
+  if command -v node >/dev/null 2>&1; then
+    current_major="$(node -p 'process.versions.node.split(".")[0]')"
+  fi
+
+  if [ "$current_major" != "24" ]; then
+    log "Installing or upgrading Node.js 24..."
+    apt update
+    apt install -y ca-certificates curl gnupg
+    curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
     apt install -y nodejs
   fi
 
-  apt update
-  apt install -y jq unzip curl wget util-linux
+  local installed_major
+  installed_major="$(node -p 'process.versions.node.split(".")[0]')"
+
+  if [ "$installed_major" != "24" ]; then
+    log "Node.js 24 installation failed"
+    exit 1
+  fi
 }
 
 configure_journal_limits() {

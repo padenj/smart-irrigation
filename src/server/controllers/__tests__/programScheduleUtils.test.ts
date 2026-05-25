@@ -1,0 +1,177 @@
+import { describe, expect, it, vi } from "vitest";
+import {
+    Program,
+    ProgramRecurrenceType,
+    ProgramSchedule,
+} from "../../../shared/programs";
+import { normalizeProgramSchedules } from "../programScheduleUtils";
+
+describe("normalizeProgramSchedules", () => {
+    it("migrates legacy startTime and daysOfWeek into one enabled daysOfWeek schedule", () => {
+        const program: Program = {
+            id: "program-1",
+            name: "Legacy Program",
+            startTime: "06:30",
+            endTime: "",
+            daysOfWeek: [1, 3, 5],
+            schedules: [],
+            zones: [{ zoneId: "zone-1", duration: 15 }],
+            isEnabled: true,
+            nextScheduledRunTime: "2026-05-24T06:30:00.000Z",
+            lastRunTime: null,
+            skipUntil: null,
+            conditions: [],
+        };
+
+        const normalizedProgram = normalizeProgramSchedules(program);
+
+        expect(normalizedProgram.schedules).toEqual([
+            expect.objectContaining({
+                id: expect.any(String),
+                recurrenceType: ProgramRecurrenceType.DAYS_OF_WEEK,
+                startTime: "06:30",
+                isEnabled: true,
+                daysOfWeek: [1, 3, 5],
+                intervalDays: null,
+                lastScheduledRunTime: null,
+                nextScheduledRunTime: "2026-05-24T06:30:00.000Z",
+            }),
+        ]);
+        expect(normalizedProgram.startTime).toBe("06:30");
+        expect(normalizedProgram.daysOfWeek).toEqual([1, 3, 5]);
+    });
+
+    it("creates one default legacy-derived schedule when schedules are empty", () => {
+        const program: Program = {
+            id: "program-legacy-defaults",
+            name: "Legacy Defaults",
+            schedules: [],
+            zones: [{ zoneId: "zone-1", duration: 15 }],
+            isEnabled: true,
+            nextScheduledRunTime: null,
+            lastRunTime: null,
+            skipUntil: null,
+            conditions: [],
+        };
+
+        const normalizedProgram = normalizeProgramSchedules(program);
+
+        expect(normalizedProgram.schedules).toEqual([
+            expect.objectContaining({
+                id: expect.any(String),
+                recurrenceType: ProgramRecurrenceType.DAYS_OF_WEEK,
+                startTime: "06:00",
+                isEnabled: true,
+                daysOfWeek: [],
+                intervalDays: null,
+                lastScheduledRunTime: null,
+                nextScheduledRunTime: null,
+            }),
+        ]);
+    });
+
+    it("preserves existing schedules while applying recurrence-specific defaults", () => {
+        const schedules: ProgramSchedule[] = [
+            {
+                id: "schedule-1",
+                recurrenceType: ProgramRecurrenceType.DAYS_OF_WEEK,
+                startTime: "07:00",
+                daysOfWeek: [2, 4],
+                isEnabled: true,
+                intervalDays: null,
+                lastScheduledRunTime: null,
+                nextScheduledRunTime: null,
+            },
+            {
+                id: "schedule-2",
+                recurrenceType: ProgramRecurrenceType.EVERY_N_DAYS,
+                startTime: "08:00",
+                isEnabled: false,
+                daysOfWeek: [],
+                intervalDays: 3,
+                lastScheduledRunTime: null,
+                nextScheduledRunTime: null,
+            },
+        ];
+
+        const program: Program = {
+            id: "program-2",
+            name: "Scheduled Program",
+            startTime: "06:30",
+            endTime: "",
+            daysOfWeek: [1, 3, 5],
+            schedules,
+            zones: [{ zoneId: "zone-1", duration: 15 }],
+            isEnabled: true,
+            nextScheduledRunTime: null,
+            lastRunTime: null,
+            skipUntil: null,
+            conditions: [],
+        };
+
+        const normalizedProgram = normalizeProgramSchedules(program);
+
+        expect(normalizedProgram.schedules).toEqual([
+            {
+                id: "schedule-1",
+                recurrenceType: ProgramRecurrenceType.DAYS_OF_WEEK,
+                startTime: "07:00",
+                isEnabled: true,
+                daysOfWeek: [2, 4],
+                intervalDays: null,
+                lastScheduledRunTime: null,
+                nextScheduledRunTime: null,
+            },
+            {
+                id: "schedule-2",
+                recurrenceType: ProgramRecurrenceType.EVERY_N_DAYS,
+                startTime: "08:00",
+                isEnabled: false,
+                daysOfWeek: [],
+                intervalDays: 3,
+                lastScheduledRunTime: null,
+                nextScheduledRunTime: null,
+            },
+        ]);
+    });
+
+    it("fills missing defaults on existing schedules during normalization", () => {
+        const program: Program = {
+            id: "program-3",
+            name: "Partial Schedule Program",
+            startTime: "06:30",
+            endTime: "",
+            daysOfWeek: [1, 3, 5],
+            schedules: [
+                {
+                    id: "schedule-partial",
+                    startTime: "09:15",
+                    recurrenceType: ProgramRecurrenceType.EVERY_N_DAYS,
+                    daysOfWeek: [1, 2],
+                    lastScheduledRunTime: null,
+                } as ProgramSchedule,
+            ],
+            zones: [{ zoneId: "zone-1", duration: 15 }],
+            isEnabled: true,
+            nextScheduledRunTime: null,
+            lastRunTime: null,
+            skipUntil: null,
+            conditions: [],
+        };
+
+        const normalizedProgram = normalizeProgramSchedules(program);
+
+        expect(normalizedProgram.schedules).toEqual([
+            {
+                id: "schedule-partial",
+                recurrenceType: ProgramRecurrenceType.EVERY_N_DAYS,
+                startTime: "09:15",
+                isEnabled: true,
+                daysOfWeek: [],
+                intervalDays: 2,
+                lastScheduledRunTime: null,
+                nextScheduledRunTime: null,
+            },
+        ]);
+    });
+});

@@ -1,6 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ProgramController } from '../ProgramController';
-import { Program } from '../../../shared/programs';
+import { Program, ProgramRecurrenceType } from '../../../shared/programs';
+import { programRepository, systemStatusRepository } from '../../data/repositories';
+import { LogController } from '../LogController';
+import { ProgramDto } from '../../dto/ProgramDto';
 
 vi.mock('../ZoneController', () => ({
     ZoneController: {
@@ -97,16 +100,23 @@ describe('ProgramController.calculateNextScheuleDate', () => {
         name: 'Test Program',
         zones: [{ zoneId: 'zone1', duration: 10 }],
         daysOfWeek: [1, 3, 5], // Monday, Wednesday, Friday
+        schedules: [],
         startTime: '12:00',
         isEnabled: true,
         conditions: [],
-        lastRunTime: undefined,
-        nextScheduledRunTime: undefined,
-        skipUntil: undefined,
+        lastRunTime: null,
+        nextScheduledRunTime: null,
+        skipUntil: null,
     } as any;
 
     beforeEach(() => {
         vi.clearAllMocks();
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-01-05T10:00:00.000Z'));
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
     });
 
     it('returns null if program has no zones', async () => {
@@ -136,11 +146,7 @@ describe('ProgramController.calculateNextScheuleDate', () => {
         const now = new Date();
         const today = now.getUTCDay(); // 0 (Sun) - 6 (Sat)
         const daysOfWeek = [today, (today + 1) % 7]; // Today and tomorrow (wrap to 0 if end of week)
-        // Set startTime to 1 minute before current time
-        const pad = (n: number) => n.toString().padStart(2, '0');
-        const hour = pad(now.getUTCHours());
-        const minute = pad((now.getUTCMinutes() === 0 ? 59 : now.getUTCMinutes() - 1));
-        const startTime = `${hour}:${minute}`;
+        const startTime = '09:59';
         const program = { ...baseProgram, daysOfWeek, startTime };
         const result = await ProgramController.calculateNextScheuleDate(program, false);
         // Should be tomorrow at the same startTime
@@ -199,5 +205,326 @@ describe('ProgramController.calculateNextScheuleDate', () => {
         expect(result).toBeTruthy();
         const resultDate = result ? new Date(result) : null;
         expect(resultDate && resultDate > new Date(lastRunTime)).toBe(true);
+    });
+
+    it('returns the earliest enabled schedule entry as the program summary next run', async () => {
+        const today = new Date().getUTCDay();
+        const program = {
+            ...baseProgram,
+            daysOfWeek: [],
+            startTime: '',
+            schedules: [
+                {
+                    id: 'schedule-later',
+                    startTime: '09:00',
+                    isEnabled: true,
+                    recurrenceType: ProgramRecurrenceType.DAYS_OF_WEEK,
+                    daysOfWeek: [(today + 3) % 7],
+                    intervalDays: null,
+                    lastScheduledRunTime: null,
+                    nextScheduledRunTime: null,
+                },
+                {
+                    id: 'schedule-earlier',
+                    startTime: '06:30',
+                    isEnabled: true,
+                    recurrenceType: ProgramRecurrenceType.DAYS_OF_WEEK,
+                    daysOfWeek: [(today + 1) % 7],
+                    intervalDays: null,
+                    lastScheduledRunTime: null,
+                    nextScheduledRunTime: null,
+                },
+            ],
+        } as Program;
+
+        const result = await ProgramController.calculateNextScheuleDate(program);
+
+        expect(result).toBe('2026-01-06T06:30:00.000Z');
+    });
+
+    it('ignores disabled schedule entries when computing the program summary next run', async () => {
+        const today = new Date().getUTCDay();
+        const program = {
+            ...baseProgram,
+            daysOfWeek: [],
+            startTime: '',
+            schedules: [
+                {
+                    id: 'schedule-disabled-earlier',
+                    startTime: '06:30',
+                    isEnabled: false,
+                    recurrenceType: ProgramRecurrenceType.DAYS_OF_WEEK,
+                    daysOfWeek: [(today + 1) % 7],
+                    intervalDays: null,
+                    lastScheduledRunTime: null,
+                    nextScheduledRunTime: null,
+                },
+                {
+                    id: 'schedule-enabled-later',
+                    startTime: '05:00',
+                    isEnabled: true,
+                    recurrenceType: ProgramRecurrenceType.DAYS_OF_WEEK,
+                    daysOfWeek: [(today + 3) % 7],
+                    intervalDays: null,
+                    lastScheduledRunTime: null,
+                    nextScheduledRunTime: null,
+                },
+            ],
+        } as Program;
+
+        const result = await ProgramController.calculateNextScheuleDate(program);
+
+        expect(result).toBe('2026-01-08T05:00:00.000Z');
+    });
+});
+
+describe('ProgramController.updateProgramSchedule', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-01-05T10:00:00.000Z'));
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    it('persists schedule entry next runs and the earliest enabled summary next run', async () => {
+        vi.mocked(programRepository.findId).mockResolvedValue({
+            id: 'program-with-schedules',
+            name: 'Program with schedules',
+            zones: [{ zoneId: 'zone-1', duration: 10 }],
+            daysOfWeek: [],
+            startTime: '',
+            schedules: [
+                {
+                    id: 'schedule-disabled-earlier',
+                    startTime: '06:30',
+                    isEnabled: false,
+                    recurrenceType: ProgramRecurrenceType.DAYS_OF_WEEK,
+                    daysOfWeek: [2],
+                    intervalDays: null,
+                    lastScheduledRunTime: null,
+                    nextScheduledRunTime: null,
+                },
+                {
+                    id: 'schedule-enabled-earliest',
+                    startTime: '07:45',
+                    isEnabled: true,
+                    recurrenceType: ProgramRecurrenceType.DAYS_OF_WEEK,
+                    daysOfWeek: [2],
+                    intervalDays: null,
+                    lastScheduledRunTime: null,
+                    nextScheduledRunTime: null,
+                },
+                {
+                    id: 'schedule-enabled-later',
+                    startTime: '05:00',
+                    isEnabled: true,
+                    recurrenceType: ProgramRecurrenceType.DAYS_OF_WEEK,
+                    daysOfWeek: [4],
+                    intervalDays: null,
+                    lastScheduledRunTime: null,
+                    nextScheduledRunTime: null,
+                },
+            ],
+            isEnabled: true,
+            nextScheduledRunTime: null,
+            lastRunTime: null,
+            skipUntil: null,
+            conditions: [],
+        } as ProgramDto);
+
+        await ProgramController.updateProgramSchedule('program-with-schedules');
+
+        expect(programRepository.update).toHaveBeenCalledWith('program-with-schedules', {
+            schedules: [
+                {
+                    id: 'schedule-disabled-earlier',
+                    startTime: '06:30',
+                    isEnabled: false,
+                    recurrenceType: ProgramRecurrenceType.DAYS_OF_WEEK,
+                    daysOfWeek: [2],
+                    intervalDays: null,
+                    lastScheduledRunTime: null,
+                    nextScheduledRunTime: null,
+                },
+                {
+                    id: 'schedule-enabled-earliest',
+                    startTime: '07:45',
+                    isEnabled: true,
+                    recurrenceType: ProgramRecurrenceType.DAYS_OF_WEEK,
+                    daysOfWeek: [2],
+                    intervalDays: null,
+                    lastScheduledRunTime: null,
+                    nextScheduledRunTime: '2026-01-06T07:45:00.000Z',
+                },
+                {
+                    id: 'schedule-enabled-later',
+                    startTime: '05:00',
+                    isEnabled: true,
+                    recurrenceType: ProgramRecurrenceType.DAYS_OF_WEEK,
+                    daysOfWeek: [4],
+                    intervalDays: null,
+                    lastScheduledRunTime: null,
+                    nextScheduledRunTime: '2026-01-08T05:00:00.000Z',
+                },
+            ],
+            nextScheduledRunTime: '2026-01-06T07:45:00.000Z',
+        });
+    });
+
+    describe('ProgramController.runProgram', () => {
+        beforeEach(() => {
+            vi.clearAllMocks();
+            vi.useFakeTimers();
+            vi.setSystemTime(new Date('2026-01-05T10:00:00.000Z'));
+        });
+
+        afterEach(() => {
+            vi.useRealTimers();
+        });
+
+        it('updates only the triggering schedule entry after a scheduled run completes', async () => {
+            const program = {
+                id: 'program-with-intervals',
+                name: 'Program with intervals',
+                zones: [{ zoneId: 'zone-1', duration: 10 }],
+                daysOfWeek: [],
+                startTime: '',
+                schedules: [
+                    {
+                        id: 'schedule-triggered',
+                        startTime: '08:00',
+                        isEnabled: true,
+                        recurrenceType: ProgramRecurrenceType.EVERY_N_DAYS,
+                        daysOfWeek: [],
+                        intervalDays: 3,
+                        lastScheduledRunTime: '2026-01-02T08:00:00.000Z',
+                        nextScheduledRunTime: '2026-01-05T08:00:00.000Z',
+                    },
+                    {
+                        id: 'schedule-untouched',
+                        startTime: '07:00',
+                        isEnabled: true,
+                        recurrenceType: ProgramRecurrenceType.EVERY_N_DAYS,
+                        daysOfWeek: [],
+                        intervalDays: 5,
+                        lastScheduledRunTime: '2026-01-01T07:00:00.000Z',
+                        nextScheduledRunTime: '2026-01-06T07:00:00.000Z',
+                    },
+                ],
+                isEnabled: true,
+                nextScheduledRunTime: '2026-01-05T08:00:00.000Z',
+                lastRunTime: null,
+                skipUntil: null,
+                conditions: [],
+            } as ProgramDto;
+
+            vi.mocked(programRepository.findId).mockResolvedValue(program);
+            vi.mocked(systemStatusRepository.findFirst)
+                .mockResolvedValueOnce({
+                    id: 0,
+                    activeProgram: null,
+                    activeZone: null,
+                    activeZoneStart: null,
+                    activeZoneEnd: null,
+                    weatherData: {} as any,
+                    sensorData: {},
+                })
+                .mockResolvedValueOnce({
+                    id: 0,
+                    activeProgram: { id: program.id },
+                    activeZone: null,
+                    activeZoneStart: null,
+                    activeZoneEnd: null,
+                    weatherData: {} as any,
+                    sensorData: {},
+                } as any);
+
+            await ProgramController.runProgram(program.id, false, 'schedule-triggered');
+
+            expect(programRepository.update).toHaveBeenCalledWith(program.id, {
+                schedules: [
+                    {
+                        id: 'schedule-triggered',
+                        startTime: '08:00',
+                        isEnabled: true,
+                        recurrenceType: ProgramRecurrenceType.EVERY_N_DAYS,
+                        daysOfWeek: [],
+                        intervalDays: 3,
+                        lastScheduledRunTime: '2026-01-05T10:00:00.000Z',
+                        nextScheduledRunTime: '2026-01-08T08:00:00.000Z',
+                    },
+                    {
+                        id: 'schedule-untouched',
+                        startTime: '07:00',
+                        isEnabled: true,
+                        recurrenceType: ProgramRecurrenceType.EVERY_N_DAYS,
+                        daysOfWeek: [],
+                        intervalDays: 5,
+                        lastScheduledRunTime: '2026-01-01T07:00:00.000Z',
+                        nextScheduledRunTime: '2026-01-06T07:00:00.000Z',
+                    },
+                ],
+                nextScheduledRunTime: '2026-01-06T07:00:00.000Z',
+                lastRunTime: '2026-01-05T10:00:00.000Z',
+            });
+        });
+
+        it('logs when a scheduled run completes without a matching triggering schedule entry', async () => {
+            const program = {
+                id: 'program-with-missing-schedule',
+                name: 'Program missing schedule',
+                zones: [{ zoneId: 'zone-1', duration: 10 }],
+                daysOfWeek: [],
+                startTime: '',
+                schedules: [
+                    {
+                        id: 'schedule-present',
+                        startTime: '08:00',
+                        isEnabled: true,
+                        recurrenceType: ProgramRecurrenceType.EVERY_N_DAYS,
+                        daysOfWeek: [],
+                        intervalDays: 3,
+                        lastScheduledRunTime: '2026-01-02T08:00:00.000Z',
+                        nextScheduledRunTime: '2026-01-05T08:00:00.000Z',
+                    },
+                ],
+                isEnabled: true,
+                nextScheduledRunTime: '2026-01-05T08:00:00.000Z',
+                lastRunTime: null,
+                skipUntil: null,
+                conditions: [],
+            } as ProgramDto;
+
+            vi.mocked(programRepository.findId).mockResolvedValue(program);
+            vi.mocked(systemStatusRepository.findFirst)
+                .mockResolvedValueOnce({
+                    id: 0,
+                    activeProgram: null,
+                    activeZone: null,
+                    activeZoneStart: null,
+                    activeZoneEnd: null,
+                    weatherData: {} as any,
+                    sensorData: {},
+                })
+                .mockResolvedValueOnce({
+                    id: 0,
+                    activeProgram: { id: program.id },
+                    activeZone: null,
+                    activeZoneStart: null,
+                    activeZoneEnd: null,
+                    weatherData: {} as any,
+                    sensorData: {},
+                } as any);
+
+            await ProgramController.runProgram(program.id, false, 'missing-schedule-id');
+
+            expect(LogController.writeLog).toHaveBeenCalledWith(
+                'Scheduled run for program Program missing schedule completed without matching schedule entry missing-schedule-id',
+                'WARNING'
+            );
+        });
     });
 });

@@ -1,114 +1,32 @@
-import { DateTime } from 'luxon';
 import { BackendMethod } from 'remult';
-import { ConditionOperator, ConditionType, Program } from '../../shared/programs';
+import {
+    ConditionOperator,
+    ConditionType,
+    Program,
+} from '../../shared/programs';
 import { DateTimeUtils } from '../utilities/DateTimeUtils';
 import { ZoneController } from './ZoneController';
 import { LogController } from './LogController';
 import { DisplayController } from './DisplayController';
 import { programRepository, settingsRepository, systemStatusRepository } from '../data/repositories';
+import { calculateProgramSchedules, normalizeProgramSchedules } from './programScheduleUtils';
 
 export class ProgramController {
 
     @BackendMethod({ allowed: true, apiPrefix: 'programs' })
     static async calculateNextScheuleDate(program: Program, skipToday?: boolean): Promise<string | null> {
-console.log(`Calculating next schedule date for program ${program.name}`);
+        console.log(`Calculating next schedule date for program ${program.name}`);
         if (!program.zones || program.zones.length === 0) {
             console.log(`Program ${program.name} has no zones. Cannot calculate schedule.`);
-            return null;
-        }
-
-        if (!program.daysOfWeek || program.daysOfWeek.length === 0) {
-            console.log(`Program ${program.name} has no days of the week specified. Cannot calculate schedule.`);
-            return null;
-        }
-
-        if (!program.startTime) {
-            console.log(`Program ${program.name} has no start time specified. Cannot calculate schedule.`);
             return null;
         }
 
         const settings = await settingsRepository.findFirst();
         const timezone = settings?.timezone || 'UTC';
         console.log(`Calculating schedule for program ${program.name} in timezone ${timezone}`);
-
-        const getNextRunDate = (
-            daysOfWeek: number[],
-            startTime: string,
-            lastRunDate: Date | null,
-            afterDate?: Date
-        ): string | null => {
-            if (!daysOfWeek || daysOfWeek.length === 0) {
-                console.log('No days of the week provided');
-                return null;
-            }
-            const [hours, minutes] = startTime.split(':').map(Number);
-            const now = DateTime.now().setZone(timezone);
-            const todayDayOfWeek = now.weekday % 7; // Convert Luxon's weekday (1-7) to JS's (0-6)
-            const sortedDaysOfWeek = [...daysOfWeek].sort((a, b) => a - b);
-
-            let nextRunDate: Date | null = null;
-
-            // Try up to two weeks ahead to find a valid date after afterDate
-            let candidateDate = now.set({ hour: hours, minute: minutes, second: 0, millisecond: 0 });
-            for (let i = 0; i < (7*52); i++) { // Check up to 52 weeks ahead
-                const currentDayOfWeek = candidateDate.weekday % 7; // 0 (Sunday) - 6 (Saturday)
-                if (
-                    sortedDaysOfWeek.includes(currentDayOfWeek) &&
-                    (!skipToday || i > 0)
-                ) {
-                    const candidateJSDate = candidateDate.toJSDate();
-                    if (
-                        candidateDate >= now &&
-                        (!lastRunDate || candidateJSDate > lastRunDate) &&
-                        (!afterDate || candidateJSDate > afterDate)
-                    ) {
-                        nextRunDate = candidateJSDate;
-                        break;
-                    }
-                }
-                candidateDate = candidateDate.plus({ days: 1 });
-            }
-
-            if (!nextRunDate) {
-                // Fallback: next week, first day
-                const firstDayOfWeek = sortedDaysOfWeek[0];
-                const candidateDate = now
-                    .plus({ days: 7 - todayDayOfWeek + firstDayOfWeek })
-                    .set({ hour: hours, minute: minutes, second: 0, millisecond: 0 });
-                const candidateJSDate = candidateDate.toJSDate();
-                if (
-                    (!lastRunDate || candidateJSDate > lastRunDate) &&
-                    (!afterDate || candidateJSDate > afterDate)
-                ) {
-                    nextRunDate = candidateJSDate;
-                }
-            }
-            console.log(`Next run date for program ${program.name} is ${nextRunDate}`);
-            return DateTimeUtils.toISODateTime(nextRunDate, timezone);
-        };
-
-        const { lastRunTime, daysOfWeek, startTime } = program;
-        const lastRunDate = lastRunTime ? DateTimeUtils.fromISODateTime(lastRunTime, timezone) : null;
-        let afterDate: Date | undefined = undefined;
-        if (program.skipUntil) {
-            const parsedDate = DateTimeUtils.fromISODateTime(program.skipUntil, timezone);
-            if (parsedDate) {
-                afterDate = parsedDate;
-            }
-        }
-
-        let nextRun = getNextRunDate(daysOfWeek, startTime, lastRunDate, afterDate);
-
-        // If scheduleAfter is provided and nextRun is before or equal to scheduleAfter, find the next one after scheduleAfter
-        if (program.skipUntil && nextRun) {
-            const nextRunDateObj = DateTimeUtils.fromISODateTime(nextRun, timezone);
-            if (nextRunDateObj && afterDate && nextRunDateObj <= afterDate) {
-                // Try again, but now afterDate is scheduleAfter
-                nextRun = getNextRunDate(daysOfWeek, startTime, lastRunDate, afterDate);
-            }
-        }
-
-        return nextRun;
+        const scheduledProgram = calculateProgramSchedules(program, timezone, skipToday);
+        console.log(`Next run date for program ${program.name} is ${scheduledProgram.nextScheduledRunTime}`);
+        return scheduledProgram.nextScheduledRunTime;
     }
 
     /**
@@ -127,9 +45,14 @@ console.log(`Calculating next schedule date for program ${program.name}`);
             return "Program not found.";
         }
         
-        const nextRunDate = await ProgramController.calculateNextScheuleDate(program, skipToday);
+        const settings = await settingsRepository.findFirst();
+        const timezone = settings?.timezone || 'UTC';
+        const scheduledProgram = calculateProgramSchedules(program, timezone, skipToday);
 
-        await programRepo.update(program.id, { nextScheduledRunTime: nextRunDate });
+        await programRepo.update(program.id, {
+            schedules: scheduledProgram.schedules,
+            nextScheduledRunTime: scheduledProgram.nextScheduledRunTime,
+        });
        
         return "Next scheduled run dates calculated successfully";
     }
@@ -149,7 +72,7 @@ console.log(`Calculating next schedule date for program ${program.name}`);
     * @param programId - The ID of the program to run.
     */
     @BackendMethod({ allowed: true, apiPrefix: 'programs' })
-    static async runProgram(programId: string, isManual?: boolean) {
+    static async runProgram(programId: string, isManual?: boolean, scheduleEntryId?: string) {
         const programRepo = programRepository;
         const systemStatus = await systemStatusRepository.findFirst();
         const settings = await settingsRepository.findFirst();
@@ -232,11 +155,12 @@ console.log(`Calculating next schedule date for program ${program.name}`);
             await systemStatusRepository.update(systemStatus.id, { activeProgram: program });
         }
 
-        // Update program's lastRunTime
+        const runCompletedAt = DateTimeUtils.toISODateTime(new Date(), timezone);
         await programRepo.update(program.id, {
-            lastRunTime: DateTimeUtils.toISODateTime(new Date(), timezone)
+            lastRunTime: runCompletedAt
         });
 
+        let completedAllZones = true;
         for (const zone of program.zones) {
             // Check if the program is still the active program
             const currentSystemStatus = await systemStatusRepository.findFirst();
@@ -255,9 +179,46 @@ console.log(`Calculating next schedule date for program ${program.name}`);
                         replacementProgramName: currentSystemStatus?.activeProgram?.name ?? null,
                     }
                 );
+                completedAllZones = false;
                 break;
             }
             await ZoneController.runZoneBlocking(zone.zoneId, zone.duration);
+        }
+
+        if (!isManual && completedAllZones && scheduleEntryId) {
+            const normalizedProgram = normalizeProgramSchedules(program);
+            const hasMatchingSchedule = normalizedProgram.schedules.some(
+                (schedule) => schedule.id === scheduleEntryId
+            );
+
+            if (!hasMatchingSchedule) {
+                LogController.writeLog(
+                    `Scheduled run for program ${program.name} completed without matching schedule entry ${scheduleEntryId}`,
+                    "WARNING"
+                );
+            }
+
+            const schedules = normalizedProgram.schedules.map((schedule) =>
+                schedule.id === scheduleEntryId
+                    ? { ...schedule, lastScheduledRunTime: runCompletedAt }
+                    : schedule
+            );
+
+            const scheduledProgram = calculateProgramSchedules(
+                {
+                    ...normalizedProgram,
+                    lastRunTime: runCompletedAt,
+                    schedules,
+                },
+                timezone,
+                true
+            );
+
+            await programRepo.update(program.id, {
+                schedules: scheduledProgram.schedules,
+                nextScheduledRunTime: scheduledProgram.nextScheduledRunTime,
+                lastRunTime: runCompletedAt,
+            });
         }
 
         LogController.writeEvent(
@@ -311,21 +272,37 @@ console.log(`Calculating next schedule date for program ${program.name}`);
         }
 
         const programToRun = programs.find((program) => {
-            if (!program.isEnabled) {
-                //console.log(`Skipping disabled program ${program.name}`);
+            if (!program.isEnabled || !program.nextScheduledRunTime) {
                 return false;
             }
-            if (program.nextScheduledRunTime) {
-                const nextRunTime = DateTimeUtils.fromISODateTime(program.nextScheduledRunTime, timezone);
-                return nextRunTime ? nextRunTime <= now : false;
-            }
-            return false;
+
+            const nextRunTime = DateTimeUtils.fromISODateTime(program.nextScheduledRunTime, timezone);
+            return nextRunTime ? nextRunTime <= now : false;
         });
 
         if (programToRun) {
+            const normalizedProgram = normalizeProgramSchedules(programToRun);
+            const triggeringSchedule = normalizedProgram.schedules
+                .filter((schedule) => {
+                    if (!schedule.isEnabled || !schedule.nextScheduledRunTime) {
+                        return false;
+                    }
+
+                    const nextRunTime = DateTimeUtils.fromISODateTime(
+                        schedule.nextScheduledRunTime,
+                        timezone
+                    );
+
+                    return nextRunTime ? nextRunTime <= now : false;
+                })
+                .sort((left, right) =>
+                    Date.parse(left.nextScheduledRunTime ?? "") -
+                    Date.parse(right.nextScheduledRunTime ?? "")
+                )[0];
+
             console.log(`Running program ${programToRun.name}`);
             // Trigger the program run in the background
-            ProgramController.runProgram(programToRun.id, false);
+            ProgramController.runProgram(programToRun.id, false, triggeringSchedule?.id);
         }
     }
 

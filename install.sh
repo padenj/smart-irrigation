@@ -40,8 +40,6 @@ ensure_node_24() {
 
   if [ "$current_major" != "24" ]; then
     log "Installing or upgrading Node.js 24..."
-    apt update
-    apt install -y ca-certificates curl gnupg
     curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
     apt install -y nodejs
   fi
